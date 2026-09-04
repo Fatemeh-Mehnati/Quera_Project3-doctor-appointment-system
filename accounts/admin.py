@@ -99,3 +99,21 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
     )
+
+
+@admin.register(Wallet)
+class WalletAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'balance', 'held_balance', 'created_at')
+    search_fields = ('user__email',)
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'reservation', 'payer_wallet', 'beneficiary_wallet', 'amount', 'status', 'created_at')
+    list_filter = ('status',)
+
+
+@admin.register(WalletTransaction)
+class WalletTransactionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'wallet', 'payment', 'type', 'direction', 'status', 'amount', 'created_at')
+    list_filter = ('type', 'direction', 'status')
