@@ -38,18 +38,20 @@ class User(AbstractUser):
 
 
 class Wallet(models.Model):
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
         related_name='wallets'
     )
     balance = models.DecimalField(
         max_digits=18,
-        decimal_places=2
+        decimal_places=2,
+        default = 0
     )
     held_balance = models.DecimalField(
         max_digits=18,
-        decimal_places=2
+        decimal_places=2,
+        default = 0
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -127,6 +129,7 @@ class WalletTransaction(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+
     completed_at = models.DateTimeField(
         null=True,
         blank=True

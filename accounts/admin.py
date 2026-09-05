@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from .models import User , Wallet , WalletTransaction , Payment
 
 from .models import User
 
