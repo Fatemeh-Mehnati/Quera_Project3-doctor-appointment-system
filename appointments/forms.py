@@ -16,7 +16,7 @@ class TimeSlotForm(forms.ModelForm):
         start_at = cleaned_data.get("start_at")
         end_at = cleaned_data.get("end_at")
         if start_at and end_at and start_at >= end_at:
-            raise forms.ValidationError("The start time must be before the end time")
+            raise forms.ValidationError("زمان شروع باید قبل از زمان پایان باشد")
         return cleaned_data
 
 

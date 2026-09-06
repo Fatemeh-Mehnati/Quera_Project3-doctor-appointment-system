@@ -15,13 +15,13 @@ class UserRegistrationForm(UserCreationForm):
     def clean_email(self):
         email = self.cleaned_data.get("email")
         if User.objects.filter(email=email).exists():
-            raise forms.ValidationError("Email already registered")
+            raise forms.ValidationError("این ایمیل قبلاً ثبت شده است")
         return email
 
     def clean_phone(self):
         phone = self.cleaned_data.get("phone")
         if phone and User.objects.filter(phone=phone).exists():
-            raise forms.ValidationError("phone already registered")
+            raise forms.ValidationError("این شماره تلفن قبلاً ثبت شده است")
         return phone
 
 
