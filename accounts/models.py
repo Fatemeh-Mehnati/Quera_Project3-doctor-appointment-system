@@ -30,6 +30,16 @@ class User(AbstractUser):
         blank=True,
         related_name='created_users',
     )
+
+    roles = models.ManyToManyField(
+        "Role",
+        through="UserRole",
+        through_fields=("user", "role"),
+        related_name="users",
+        blank=True,
+    )
+
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
@@ -44,6 +54,68 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+class Role(models.Model):
+    class Code(models.TextChoices):
+        PATIENT = "PATIENT", "Patient"
+        DOCTOR = "DOCTOR", "Doctor"
+        ADMIN = "ADMIN", "Admin"
+
+    code = models.CharField(
+        max_length=50,
+        choices=Code,
+        unique=True,
+    )
+
+    name = models.CharField(
+        max_length=100,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class UserRole(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="role_assignments",
+    )
+
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.CASCADE,
+        related_name="user_assignments",
+    )
+
+    assigned_by_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_role_records",
+    )
+
+    assigned_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "role"],
+                name="unique_role_per_user",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.role.code}"
+
 
 
 class Wallet(models.Model):
@@ -103,7 +175,7 @@ class Payment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Payment {self.id} - {self.amount}"
+        return f"Payment {self.pk} - {self.amount}"
 
 
 class WalletTransaction(models.Model):
@@ -145,4 +217,4 @@ class WalletTransaction(models.Model):
     )
 
     def __str__(self):
-        return f"Transaction {self.id} - {self.amount}"
+        return f"Transaction {self.pk} - {self.amount}"
