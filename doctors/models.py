@@ -1,7 +1,10 @@
 from django.db import models
 
 class Specialty(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+    )
     description = models.TextField(
         null=True,
         blank=True,
@@ -13,12 +16,21 @@ class Specialty(models.Model):
 
 
 class Doctor(models.Model):
+    class VerificationStatus(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        APPROVED = "APPROVED", "Approved"
+        REJECTED = "REJECTED", "Rejected"
+
     user = models.OneToOneField(
         'accounts.User',
         on_delete=models.CASCADE,
         related_name='doctor',
     )
-    verification_status = models.CharField(max_length=100)
+    verification_status = models.CharField(
+        max_length=20,
+        choices=VerificationStatus,
+        default=VerificationStatus.PENDING,
+    )
     verified_by_user = models.ForeignKey(
         'accounts.User',
         on_delete=models.SET_NULL,
@@ -53,6 +65,14 @@ class DoctorSpecialty(models.Model):
         related_name='doctor_specialties',
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["doctor", "specialty"],
+                name="unique_specialty_per_doctor",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.doctor} - {self.specialty}"
