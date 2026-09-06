@@ -9,11 +9,20 @@ class User(AbstractUser):
     email = models.EmailField(max_length=255,unique=True)
 
     phone = models.CharField(
-        max_length=11,
+        max_length=32,
         unique=True,
         null=True,
         blank=True,
     )
+
+    first_name = models.CharField(
+        max_length=100,
+    )
+
+    last_name = models.CharField(
+        max_length=100,
+    )
+
     created_by_user = models.ForeignKey(
         'self',
         on_delete=models.SET_NULL,
