@@ -85,21 +85,33 @@ class SlotPriceHistory(models.Model):
 
 
 class Appointment(models.Model):
+    class Status(models.TextChoices):
+        RESERVED = "RESERVED", "Reserved"
+        COMPLETED = "COMPLETED", "Completed"
+        CANCELLED = "CANCELLED", "Cancelled"
+        PATIENT_NO_SHOW = "PATIENT_NO_SHOW", "Patient No Show"
+
     patient_user = models.ForeignKey(
         'accounts.User',
         on_delete=models.CASCADE,
         related_name='appointments',
     )
-    visit_slot = models.ForeignKey(
+    visit_slot = models.OneToOneField(
         TimeSlot,
         on_delete=models.PROTECT,
-        related_name='appointments',
+        related_name="appointment",
     )
+
     reserved_price = models.DecimalField(
         max_digits=18,
         decimal_places=2,
     )
-    status = models.CharField(max_length=50)
+
+    status = models.CharField(
+        max_length=30,
+        choices=Status,
+        default=Status.RESERVED,
+    )
 
     cancelled_by_user = models.ForeignKey(
         'accounts.User',
@@ -140,5 +152,13 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(reserved_price__gt=0),
+                name="appointment_reserved_price_positive",
+            ),
+        ]
+
     def __str__(self):
-        return f"Appointment {self.id}"
+        return f"Appointment {self.pk}"
