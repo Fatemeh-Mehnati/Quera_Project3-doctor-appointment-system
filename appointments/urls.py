@@ -1,8 +1,8 @@
 from django.urls import path
-from .views import all
+import views
 
 urlpatterns = [
-    path('otp/request/', request_otp, name='request_otp'),
+    path('appoinments/', views.appoinment, name='appoinments'),
 ]
 
 app_name = 'appointments'
