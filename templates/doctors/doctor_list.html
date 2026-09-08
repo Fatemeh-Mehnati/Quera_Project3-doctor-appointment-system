@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Our Doctors" %} | CareWell Clinic{% endblock %}
+{% block description %}{% trans "Browse verified doctors, filter by specialty and book an appointment online." %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- Doctor list page ---------- */
+  .doctors-hero{padding:56px 0 8px;}
+  .doctors-hero .section-head{margin-bottom:0;}
+
+  .search-panel{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    padding:22px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;
+    margin:32px 0 40px;
+  }
+  .field-group{flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px;}
+  .field-group label{font-size:.82rem;font-weight:700;color:var(--ink-soft);}
+  .field-group input[type="text"],
+  .field-group select{
+    padding:11px 14px;border:1px solid var(--line);border-radius:9px;
+    font-family:inherit;font-size:.92rem;color:var(--ink);background:var(--bg);
+    outline:none;transition:border-color .2s ease;
+  }
+  .field-group input[type="text"]:focus,
+  .field-group select:focus{border-color:var(--teal);}
+  .search-panel .btn{flex:none;height:44px;padding:0 22px;}
+  .search-panel .errorlist{color:#B3261E;font-size:.78rem;margin:2px 0 0;list-style:none;padding:0;}
+
+  .results-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap;gap:10px;}
+  .results-count{font-size:.9rem;color:var(--ink-soft);}
+  .results-count strong{color:var(--ink);}
+  .clear-filters{font-size:.85rem;font-weight:700;color:var(--teal);}
+  .clear-filters:hover{color:var(--teal-dark);}
+
+  /* doctor cards */
+  .doctor-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .doctor-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:24px;display:flex;flex-direction:column;gap:14px;transition:border-color .2s ease, transform .15s ease;
+  }
+  .doctor-card:hover{border-color:var(--teal);transform:translateY(-2px);}
+  .doctor-top{display:flex;align-items:center;gap:14px;}
+  .doctor-avatar{
+    flex:none;width:56px;height:56px;border-radius:50%;background:var(--bg-alt);
+    color:var(--teal-dark);font-weight:800;font-size:1rem;display:flex;align-items:center;justify-content:center;
+  }
+  .doctor-name{font-size:1.02rem;font-weight:800;}
+  .doctor-verified{
+    display:inline-flex;align-items:center;gap:4px;font-size:.76rem;font-weight:700;color:var(--teal);margin-top:2px;
+  }
+  .doctor-verified svg{width:12px;height:12px;}
+
+  .doctor-specialties{display:flex;flex-wrap:wrap;gap:6px;}
+  .doctor-specialties span{
+    font-size:.76rem;font-weight:600;color:var(--teal-dark);background:var(--bg-alt);
+    padding:5px 11px;border-radius:100px;
+  }
+  .doctor-card .btn{margin-top:auto;width:100%;}
+
+  .empty-state{
+    text-align:center;padding:60px 20px;background:var(--bg-alt);border-radius:16px;
+  }
+  .empty-state h3{font-size:1.1rem;font-weight:800;}
+  .empty-state p{margin-top:8px;color:var(--ink-soft);}
+
+  /* pagination */
+  .pagination{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:44px;flex-wrap:wrap;}
+  .page-link{
+    min-width:40px;height:40px;padding:0 10px;border:1px solid var(--line);border-radius:9px;
+    display:flex;align-items:center;justify-content:center;font-size:.88rem;font-weight:700;color:var(--ink);
+  }
+  .page-link:hover{border-color:var(--teal);color:var(--teal-dark);}
+  .page-link.is-current{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .page-link.is-disabled{opacity:.4;pointer-events:none;}
+
+  @media (max-width:960px){
+    .doctor-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:640px){
+    .doctor-grid{grid-template-columns:1fr;}
+    .search-panel{flex-direction:column;align-items:stretch;}
+    .search-panel .btn{width:100%;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ---------- Page header ---------- -->
+<section class="doctors-hero">
+  <div class="container">
+    <div class="section-head">
+      <h2>{% trans "Our Doctors" %}</h2>
+      <p>{% trans "Search by name or specialty to find the right doctor and book an appointment online." %}</p>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Search / filter form ---------- -->
+<section style="padding-top:0;">
+  <div class="container">
+
+    <form method="get" class="search-panel" role="search">
+      <div class="field-group">
+        <label for="{{ form.query.id_for_label }}">{% trans "Search" %}</label>
+        {{ form.query }}
+        {% if form.query.errors %}<ul class="errorlist">{{ form.query.errors }}</ul>{% endif %}
+      </div>
+
+      <div class="field-group">
+        <label for="{{ form.specialty.id_for_label }}">{% trans "Specialty" %}</label>
+        {{ form.specialty }}
+        {% if form.specialty.errors %}<ul class="errorlist">{{ form.specialty.errors }}</ul>{% endif %}
+      </div>
+
+      <button type="submit" class="btn btn-solid">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        {% trans "Search" %}
+      </button>
+    </form>
+
+    <div class="results-bar">
+      <span class="results-count">
+        <strong>{{ total_count }}</strong>
+        {% blocktrans count counter=total_count %}doctor found{% plural %}doctors found{% endblocktrans %}
+      </span>
+      {% if querystring %}
+        <a href="{% url 'doctors:doctor_list' %}" class="clear-filters">{% trans "Clear filters" %}</a>
+      {% endif %}
+    </div>
+
+    <!-- ---------- Results grid ---------- -->
+    {% if doctors %}
+      <div class="doctor-grid">
+        {% for doctor in doctors %}
+          <div class="doctor-card">
+            <div class="doctor-top">
+              <div class="doctor-avatar">
+                {{ doctor.user.first_name|first|upper }}{{ doctor.user.last_name|first|upper }}
+              </div>
+              <div>
+                <div class="doctor-name">
+                  {% blocktrans with first=doctor.user.first_name last=doctor.user.last_name %}Dr. {{ first }} {{ last }}{% endblocktrans %}
+                </div>
+                <span class="doctor-verified">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+                  {% trans "Verified" %}
+                </span>
+              </div>
+            </div>
+
+            {% with specialties=doctor.doctor_specialties.all %}
+              {% if specialties %}
+                <div class="doctor-specialties">
+                  {% for ds in specialties %}
+                    <span>{{ ds.specialty.name }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <a href="{% url 'doctors:doctor_detail' pk=doctor.pk %}" class="btn btn-ghost">
+              {% trans "View Profile" %}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h3>{% trans "No doctors found" %}</h3>
+        <p>{% trans "Try a different search term or clear the specialty filter." %}</p>
+      </div>
+    {% endif %}
+
+    <!-- ---------- Pagination ---------- -->
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="{% trans 'Pagination' %}">
+        {% if page_obj.has_previous %}
+          <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">&laquo;</a>
+        {% else %}
+          <span class="page-link is-disabled">&laquo;</span>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+          {% if num == page_obj.number %}
+            <span class="page-link is-current">{{ num }}</span>
+          {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+            <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ num }}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <a class="page-link" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">&raquo;</a>
+        {% else %}
+          <span class="page-link is-disabled">&raquo;</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}

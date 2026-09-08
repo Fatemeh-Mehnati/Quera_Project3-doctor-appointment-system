@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% blocktrans with first=doctor.user.first_name last=doctor.user.last_name %}Dr. {{ first }} {{ last }}{% endblocktrans %} | CareWell Clinic{% endblock %}
+{% block description %}{% blocktrans with first=doctor.user.first_name last=doctor.user.last_name %}Book an appointment with Dr. {{ first }} {{ last }} online.{% endblocktrans %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- Doctor detail page ---------- */
+  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--ink-soft);padding:24px 0 0;}
+  .breadcrumb a:hover{color:var(--teal-dark);}
+  .breadcrumb .sep{opacity:.5;}
+
+  .doctor-hero{padding:24px 0 48px;}
+  .doctor-hero-grid{display:grid;grid-template-columns:2fr 1fr;gap:32px;align-items:start;}
+
+  .doctor-profile-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:32px;
+  }
+  .doctor-profile-top{display:flex;align-items:center;gap:20px;}
+  .doctor-profile-avatar{
+    flex:none;width:84px;height:84px;border-radius:50%;background:var(--bg-alt);
+    color:var(--teal-dark);font-weight:800;font-size:1.5rem;display:flex;align-items:center;justify-content:center;
+  }
+  .doctor-profile-name{font-size:1.4rem;font-weight:800;}
+  .doctor-profile-verified{
+    display:inline-flex;align-items:center;gap:5px;font-size:.82rem;font-weight:700;color:var(--teal);margin-top:6px;
+  }
+  .doctor-profile-verified svg{width:13px;height:13px;}
+
+  .doctor-specialties{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;}
+  .doctor-specialties span{
+    font-size:.8rem;font-weight:600;color:var(--teal-dark);background:var(--bg-alt);
+    padding:7px 14px;border-radius:100px;
+  }
+
+  .doctor-bio{margin-top:22px;padding-top:22px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:.95rem;}
+  .doctor-bio h3{font-size:1rem;font-weight:800;color:var(--ink);margin-bottom:10px;}
+
+  .doctor-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px;padding-top:22px;border-top:1px solid var(--line);}
+  .meta-item{display:flex;align-items:center;gap:10px;}
+  .meta-item .mi-icon{
+    flex:none;width:38px;height:38px;border-radius:10px;background:var(--bg-alt);color:var(--teal);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .meta-item strong{display:block;font-size:.86rem;font-weight:700;}
+  .meta-item span{display:block;font-size:.8rem;color:var(--ink-soft);}
+
+  /* booking sidebar */
+  .booking-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;
+    position:sticky;top:100px;
+  }
+  .booking-card h3{font-size:1.02rem;font-weight:800;}
+  .booking-card .sub{font-size:.85rem;color:var(--ink-soft);margin-top:4px;}
+
+  .slot-list{margin-top:20px;display:flex;flex-direction:column;gap:10px;max-height:520px;overflow-y:auto;}
+  .slot-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:13px 14px;border:1px solid var(--line);border-radius:10px;transition:border-color .2s ease;
+  }
+  .slot-row:hover{border-color:var(--teal);}
+  .slot-row-info{display:flex;flex-direction:column;gap:2px;}
+  .slot-date{font-size:.78rem;font-weight:700;color:var(--ink-soft);}
+  .slot-time{font-size:.95rem;font-weight:800;}
+  .slot-price{font-size:.82rem;color:var(--teal-dark);font-weight:700;}
+  .slot-book-btn{
+    flex:none;background:var(--teal);color:#fff;border:0;font-size:.82rem;font-weight:700;
+    padding:9px 16px;border-radius:8px;transition:background .2s ease;
+  }
+  .slot-book-btn:hover{background:var(--teal-dark);}
+
+  .no-slots{
+    margin-top:20px;padding:28px 16px;text-align:center;background:var(--bg-alt);border-radius:12px;
+  }
+  .no-slots p{font-size:.88rem;color:var(--ink-soft);}
+
+  @media (max-width:900px){
+    .doctor-hero-grid{grid-template-columns:1fr;}
+    .booking-card{position:static;}
+    .doctor-meta-grid{grid-template-columns:1fr;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ---------- Breadcrumb ---------- -->
+<div class="container">
+  <nav class="breadcrumb" aria-label="{% trans 'Breadcrumb' %}">
+    <a href="{% url 'home' %}">{% trans "Home" %}</a>
+    <span class="sep">/</span>
+    <a href="{% url 'doctors:doctor_list' %}">{% trans "Our Doctors" %}</a>
+    <span class="sep">/</span>
+    <span>{% blocktrans with first=doctor.user.first_name last=doctor.user.last_name %}Dr. {{ first }} {{ last }}{% endblocktrans %}</span>
+  </nav>
+</div>
+
+<!-- ---------- Doctor profile + booking ---------- -->
+<section class="doctor-hero">
+  <div class="container">
+    <div class="doctor-hero-grid">
+
+      <!-- Profile -->
+      <div class="doctor-profile-card">
+        <div class="doctor-profile-top">
+          <div class="doctor-profile-avatar">
+            {{ doctor.user.first_name|first|upper }}{{ doctor.user.last_name|first|upper }}
+          </div>
+          <div>
+            <div class="doctor-profile-name">
+              {% blocktrans with first=doctor.user.first_name last=doctor.user.last_name %}Dr. {{ first }} {{ last }}{% endblocktrans %}
+            </div>
+            <span class="doctor-profile-verified">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+              {% trans "Verified Doctor" %}
+            </span>
+          </div>
+        </div>
+
+        {% if specialties %}
+          <div class="doctor-specialties">
+            {% for specialty in specialties %}
+              <span>{{ specialty.name }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="doctor-meta-grid" style="border-top:1px solid var(--line);">
+          <div class="meta-item">
+            <span class="mi-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
+            </span>
+            <div>
+              <strong>{% trans "Online Booking" %}</strong>
+              <span>{% trans "Book instantly, pay online" %}</span>
+            </div>
+          </div>
+          <div class="meta-item">
+            <span class="mi-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <div>
+              <strong>{% trans "Verified Specialist" %}</strong>
+              <span>{% trans "Approved by CareWell Clinic" %}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking sidebar -->
+      <div class="booking-card">
+        <h3>{% trans "Available Time Slots" %}</h3>
+        <span class="sub">{% trans "Pick a time to book your visit" %}</span>
+
+        {% if slots %}
+          <div class="slot-list">
+            {% for item in slots %}
+              <div class="slot-row">
+                <div class="slot-row-info">
+                  <span class="slot-date">{{ item.slot.start_at|date:"D, d M" }}</span>
+                  <span class="slot-time">{{ item.slot.start_at|date:"H:i" }}</span>
+                  {% if item.price %}
+                    <span class="slot-price">{{ item.price }} {% trans "Toman" %}</span>
+                  {% endif %}
+                </div>
+                {# TODO: مسیر رزرو نوبت رو با URL واقعی اپ appointments جایگزین کنید #}
+                <form method="post" action="{% url 'appointments:book' slot_id=item.slot.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="slot-book-btn">{% trans "Book" %}</button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="no-slots">
+            <p>{% trans "No available time slots right now. Please check back later." %}</p>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{% endblock %}
