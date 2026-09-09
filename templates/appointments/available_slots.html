@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Available Time Slots" %} | CareWell Clinic{% endblock %}
+{% block description %}{% trans "Browse and reserve an available appointment slot." %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- Available slots page ---------- */
+  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--ink-soft);padding:24px 0 0;}
+  .breadcrumb a:hover{color:var(--teal-dark);}
+  .breadcrumb .sep{opacity:.5;}
+
+  .slots-page{padding:24px 0 80px;}
+  .slots-page-head{max-width:56ch;margin-bottom:32px;}
+  .slots-page-head h2{font-size:clamp(1.5rem,1.2rem + 1vw,1.9rem);font-weight:800;}
+  .slots-page-head p{margin-top:10px;color:var(--ink-soft);}
+
+  /* group by day */
+  .day-group{margin-bottom:32px;}
+  .day-group-title{
+    font-size:.9rem;font-weight:800;color:var(--teal-dark);margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .day-group-title svg{width:16px;height:16px;}
+
+  .slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .slot-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:18px;display:flex;flex-direction:column;gap:10px;transition:border-color .2s ease;
+  }
+  .slot-card:hover{border-color:var(--teal);}
+  .slot-card-time{font-size:1.15rem;font-weight:800;}
+  .slot-card-range{font-size:.78rem;color:var(--ink-soft);}
+  .slot-card-price{font-size:.86rem;font-weight:700;color:var(--teal-dark);}
+  .slot-card form{margin-top:auto;}
+  .slot-card-btn{
+    width:100%;background:var(--teal);color:#fff;border:0;font-size:.85rem;font-weight:700;
+    padding:10px;border-radius:8px;transition:background .2s ease;
+  }
+  .slot-card-btn:hover{background:var(--teal-dark);}
+  .slot-card-btn:disabled{background:var(--line);color:var(--ink-soft);cursor:not-allowed;}
+
+  .empty-state{
+    text-align:center;padding:60px 20px;background:var(--bg-alt);border-radius:16px;
+  }
+  .empty-state h3{font-size:1.1rem;font-weight:800;}
+  .empty-state p{margin-top:8px;color:var(--ink-soft);}
+
+  @media (max-width:960px){
+    .slot-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (max-width:560px){
+    .slot-grid{grid-template-columns:1fr;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <nav class="breadcrumb" aria-label="{% trans 'Breadcrumb' %}">
+    <a href="{% url 'home' %}">{% trans "Home" %}</a>
+    <span class="sep">/</span>
+    <a href="{% url 'doctors:doctor_list' %}">{% trans "Our Doctors" %}</a>
+    <span class="sep">/</span>
+    {% if items %}
+      <a href="{% url 'doctors:doctor_detail' pk=doctor_id %}">
+        {% blocktrans with first=items.0.slot.doctor.user.first_name last=items.0.slot.doctor.user.last_name %}Dr. {{ first }} {{ last }}{% endblocktrans %}
+      </a>
+      <span class="sep">/</span>
+    {% endif %}
+    <span>{% trans "Available Time Slots" %}</span>
+  </nav>
+</div>
+
+<section class="slots-page">
+  <div class="container">
+    <div class="slots-page-head">
+      <h2>{% trans "Available Time Slots" %}</h2>
+      <p>{% trans "Choose a time slot below and reserve it instantly. Payment is deducted from your wallet." %}</p>
+    </div>
+
+    {% regroup items by slot.start_at|date:"Y-m-d" as day_list %}
+
+    {% if day_list %}
+      {% for day in day_list %}
+        <div class="day-group">
+          <div class="day-group-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
+            {{ day.list.0.slot.start_at|date:"l, d F Y" }}
+          </div>
+
+          <div class="slot-grid">
+            {% for item in day.list %}
+              <div class="slot-card">
+                <div>
+                  <div class="slot-card-time">{{ item.slot.start_at|date:"H:i" }}</div>
+                  <div class="slot-card-range">{{ item.slot.start_at|date:"H:i" }} &ndash; {{ item.slot.end_at|date:"H:i" }}</div>
+                </div>
+                {% if item.price %}
+                  <div class="slot-card-price">{{ item.price }} {% trans "Toman" %}</div>
+                {% endif %}
+                <form method="post" action="{% url 'appointments:reserve' slot_id=item.slot.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="slot-card-btn" {% if not item.price %}disabled{% endif %}>
+                    {% if item.price %}{% trans "Reserve" %}{% else %}{% trans "Unavailable" %}{% endif %}
+                  </button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <h3>{% trans "No available time slots" %}</h3>
+        <p>{% trans "This doctor has no open time slots right now. Please check back later." %}</p>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}

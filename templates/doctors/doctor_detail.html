@@ -164,8 +164,7 @@
                     <span class="slot-price">{{ item.price }} {% trans "Toman" %}</span>
                   {% endif %}
                 </div>
-                {# TODO: مسیر رزرو نوبت رو با URL واقعی اپ appointments جایگزین کنید #}
-                <form method="post" action="{% url 'appointments:book' slot_id=item.slot.pk %}">
+                <form method="post" action="{% url 'appointments:reserve' slot_id=item.slot.pk %}">
                   {% csrf_token %}
                   <button type="submit" class="slot-book-btn">{% trans "Book" %}</button>
                 </form>
