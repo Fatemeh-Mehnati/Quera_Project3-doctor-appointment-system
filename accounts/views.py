@@ -1,5 +1,6 @@
 import random
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import (
     get_user_model,
@@ -8,6 +9,8 @@ from django.contrib.auth import (
     logout,
 )
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.contrib import messages
 from django.core.mail import send_mail
 from django.shortcuts import render, redirect
 from django.utils import timezone
@@ -19,6 +22,7 @@ from .forms import (
     LoginForm,
 )
 
+from .models import Wallet, WalletTransaction
 
 User = get_user_model()
 
@@ -246,4 +250,103 @@ def profile(request):
     return render(
         request,
         'accounts/profile.html',
+    )
+
+@login_required
+def wallet(request):
+    wallet, _ = Wallet.objects.get_or_create(
+        user=request.user
+    )
+
+    return render(
+        request,
+        'accounts/wallet.html',
+        {'wallet': wallet}
+    )
+
+
+@login_required
+def deposit(request):
+    if request.method != "POST":
+        return redirect("accounts:wallet")
+
+    try:
+        amount = Decimal(request.POST.get("amount", "0"))
+    except InvalidOperation:
+        messages.error(request, "Invalid amount.")
+        return redirect("accounts:wallet")
+
+    if amount <= 0:
+        messages.error(request, "Amount must be greater than zero.")
+        return redirect("accounts:wallet")
+
+    wallet, _ = Wallet.objects.get_or_create(
+        user=request.user
+    )
+
+    with transaction.atomic():
+        wallet.balance += amount
+        wallet.save(update_fields=["balance"])
+
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            type="DEPOSIT",
+            direction="IN",
+            status="COMPLETED",
+            amount=amount,
+        )
+
+    return redirect("accounts:wallet")
+
+
+@login_required
+def withdraw(request):
+    if request.method != "POST":
+        return redirect("accounts:wallet")
+
+    try:
+        amount = Decimal(request.POST.get("amount", "0"))
+    except InvalidOperation:
+        messages.error(request, "Invalid amount.")
+        return redirect("accounts:wallet")
+
+    if amount <= 0:
+        messages.error(request, "Amount must be greater than zero.")
+        return redirect("accounts:wallet")
+
+    wallet, _ = Wallet.objects.get_or_create(
+        user=request.user
+    )
+
+    if amount > wallet.balance:
+        messages.error(request, "Insufficient balance.")
+        return redirect("accounts:wallet")
+
+    with transaction.atomic():
+        wallet.balance -= amount
+        wallet.save(update_fields=["balance"])
+
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            type="WITHDRAW",
+            direction="OUT",
+            status="COMPLETED",
+            amount=amount,
+        )
+
+    return redirect("accounts:wallet")
+
+
+@login_required
+def transaction_history(request):
+    wallet, _ = Wallet.objects.get_or_create(
+        user=request.user
+    )
+
+    transactions = wallet.transactions.all().order_by("-created_at")
+
+    return render(
+        request,
+        "accounts/transaction_history.html",
+        {"transactions": transactions},
     )

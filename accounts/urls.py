@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import request_otp, verify_otp , register , user_login, user_logout, profile
+from .views import request_otp, verify_otp , register , user_login, user_logout, profile, wallet, deposit, withdraw, transaction_history
 
 urlpatterns = [
     path('otp/request/', request_otp, name='request_otp'),
@@ -10,6 +10,11 @@ urlpatterns = [
     path('logout/', user_logout, name='logout'),
 
     path('profile/', profile, name='profile'),
+
+    path('wallet/', wallet, name='wallet'),
+    path('wallet/deposit/', deposit, name='deposit'),
+    path('wallet/withdraw/', withdraw, name='withdraw'),
+    path("wallet/transactions/", transaction_history, name="transaction_history"),
 ]
 
 app_name = 'accounts'
