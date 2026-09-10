@@ -1,6 +1,12 @@
 from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
+from django.utils import timezone
 from .managers import UserManager
+
+
+class InsufficientBalanceError(Exception):
+    """وقتی موجودی کیف پول برای برداشت کافی نباشد raise می‌شود."""
 
 
 class User(AbstractUser):
@@ -137,8 +143,65 @@ class Wallet(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(balance__gte=0),
+                name="wallet_balance_non_negative",
+            ),
+        ]
+
     def __str__(self):
         return f"{self.user.email} - Wallet"
+
+    def deposit(self, amount, *, type="CHARGE", external_reference=None, payment=None):
+
+        if amount <= 0:
+            raise ValidationError("مبلغ واریزی باید بزرگ‌تر از صفر باشد.")
+
+        with transaction.atomic():
+            wallet = Wallet.objects.select_for_update().get(pk=self.pk)
+            wallet.balance += amount
+            wallet.save(update_fields=["balance", "updated_at"])
+
+            txn = wallet.transactions.create(
+                payment=payment,
+                type=type,
+                direction="CREDIT",
+                status="COMPLETED",
+                amount=amount,
+                external_reference=external_reference,
+                completed_at=timezone.now(),
+            )
+
+        self.refresh_from_db(fields=["balance"])
+        return txn
+
+    def withdraw(self, amount, *, type="PAYMENT", external_reference=None, payment=None):
+
+        if amount <= 0:
+            raise ValidationError("مبلغ برداشت باید بزرگ‌تر از صفر باشد.")
+
+        with transaction.atomic():
+            wallet = Wallet.objects.select_for_update().get(pk=self.pk)
+            if wallet.balance < amount:
+                raise InsufficientBalanceError("موجودی کیف پول کافی نیست.")
+
+            wallet.balance -= amount
+            wallet.save(update_fields=["balance", "updated_at"])
+
+            txn = wallet.transactions.create(
+                payment=payment,
+                type=type,
+                direction="DEBIT",
+                status="COMPLETED",
+                amount=amount,
+                external_reference=external_reference,
+                completed_at=timezone.now(),
+            )
+
+        self.refresh_from_db(fields=["balance"])
+        return txn
 
 
 class Payment(models.Model):

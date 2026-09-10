@@ -5,7 +5,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from accounts.models import Wallet, WalletTransaction
+from accounts.models import InsufficientBalanceError, Wallet
 
 from .models import Appointment, TimeSlot
 
@@ -83,38 +83,33 @@ def reserve_appointment(request, slot_id):
         messages.error(request, "برای این بازه هزینه‌ای تعیین نشده است.")
         return doctor_url
 
-    # کیف پول هم قفل می‌شود تا دو رزرو هم‌زمان موجودی را منفی نکنند
+    # withdraw خودش ردیف کیف پول را قفل می‌کند و اگر موجودی کافی
+    # نباشد InsufficientBalanceError raise می‌کند؛ در آن صورت هیچ
+    # چیزی تغییر نمی‌کند (چون داخل transaction.atomic اجرا می‌شود).
     try:
-        wallet = Wallet.objects.select_for_update().get(user=request.user)
+        wallet = Wallet.objects.get(user=request.user)
     except Wallet.DoesNotExist:
         messages.error(request, "کیف پولی برای حساب شما یافت نشد.")
         return doctor_url
 
-    if wallet.balance < price:
+    try:
+        wallet.withdraw(
+            price,
+            type="APPOINTMENT",
+            external_reference=f"slot:{slot.pk}",
+        )
+    except InsufficientBalanceError:
         messages.error(
             request,
             "موجودی کیف پول شما کافی نیست. لطفاً ابتدا کیف پول را شارژ کنید.",
         )
         return doctor_url
 
-    wallet.balance -= price
-    wallet.save(update_fields=["balance", "updated_at"])
-
     appointment = Appointment.objects.create(
         patient_user=request.user,
         visit_slot=slot,
         reserved_price=price,
         status=Appointment.Status.RESERVED,
-    )
-
-    WalletTransaction.objects.create(
-        wallet=wallet,
-        type="APPOINTMENT",
-        direction="DEBIT",
-        status="COMPLETED",
-        amount=price,
-        external_reference=f"appointment:{appointment.pk}",
-        completed_at=timezone.now(),
     )
 
     # ایمیل بعد از commit موفق ارسال می‌شود، نه وسط تراکنش —
@@ -186,18 +181,11 @@ def cancel_appointment(request, pk):
         messages.error(request, "زمان این نوبت گذشته است و قابل لغو نیست.")
         return redirect("appointments:my_appointments")
 
-    wallet = Wallet.objects.select_for_update().get(user=request.user)
-    wallet.balance += appointment.reserved_price
-    wallet.save(update_fields=["balance", "updated_at"])
-
-    WalletTransaction.objects.create(
-        wallet=wallet,
+    wallet = Wallet.objects.get(user=request.user)
+    wallet.deposit(
+        appointment.reserved_price,
         type="REFUND",
-        direction="CREDIT",
-        status="COMPLETED",
-        amount=appointment.reserved_price,
         external_reference=f"refund:{appointment.pk}",
-        completed_at=timezone.now(),
     )
 
     appointment.status = Appointment.Status.CANCELLED
