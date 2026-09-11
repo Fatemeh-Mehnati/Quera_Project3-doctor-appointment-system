@@ -1,0 +1,810 @@
+{% load static i18n %}
+<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE|default:'en' }}" dir="{% if LANGUAGE_CODE == 'fa' %}rtl{% else %}ltr{% endif %}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}CareWell Clinic | Online Doctor Appointments{% endblock %}</title>
+<meta name="description" content="{% block description %}Find a doctor, book an appointment and pay online — all in one place.{% endblock %}">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#FFFFFF;
+    --bg-alt:#EAF6F2;
+    --surface:#FFFFFF;
+    --ink:#12181C;
+    --ink-soft:#5B6570;
+    --teal:#1B8F76;
+    --teal-dark:#146354;
+    --gold:#F5A623;
+    --line:#E4E9E7;
+    --radius:12px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Manrope", Arial, sans-serif;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+  }
+  img,svg{display:block;max-width:100%;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;}
+  ul{margin:0;padding:0;list-style:none;}
+  h1,h2,h3,p{margin:0;}
+  .container{max-width:1240px;margin:0 auto;padding:0 24px;}
+  :focus-visible{outline:3px solid var(--gold);outline-offset:2px;}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:11px 20px;border-radius:9px;font-weight:700;font-size:.92rem;
+    border:1px solid transparent;transition:transform .15s ease, background .2s ease, border-color .2s ease;
+  }
+  .btn-solid{background:var(--teal);color:#fff;}
+  .btn-solid:hover{background:var(--teal-dark);}
+  .btn-solid:active{transform:scale(.98);}
+  .btn-ghost{color:var(--ink);border-color:var(--line);background:transparent;}
+  .btn-ghost:hover{border-color:var(--teal);color:var(--teal-dark);}
+  .btn-pill{border-radius:100px;}
+
+  /* ---------- Header ---------- */
+  .site-header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 0;gap:24px;}
+  .brand{display:flex;align-items:center;gap:10px;flex:none;}
+  .brand-mark{width:38px;height:38px;flex:none;color:var(--teal);}
+  .brand-text{line-height:1.2;}
+  .brand-text strong{display:block;font-size:1.15rem;font-weight:800;color:var(--ink);}
+  .brand-text span{display:block;font-size:.68rem;letter-spacing:.14em;color:var(--teal);font-weight:700;}
+
+  .nav-links{display:flex;align-items:center;gap:30px;font-size:.94rem;font-weight:600;color:var(--ink);}
+  .nav-links a{display:flex;align-items:center;gap:5px;}
+  .nav-links a:hover{color:var(--teal-dark);}
+  .nav-links .is-active{color:var(--teal);}
+  .nav-links .chevron{width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin-top:-3px;opacity:.7;}
+  .has-dropdown{position:relative;}
+  .dropdown{
+    position:absolute;top:26px;left:0;min-width:180px;background:var(--surface);
+    border:1px solid var(--line);border-radius:10px;padding:8px;box-shadow:0 12px 24px rgba(18,24,28,.08);
+    opacity:0;pointer-events:none;transform:translateY(4px);transition:opacity .15s ease, transform .15s ease;
+  }
+  .has-dropdown:hover .dropdown{opacity:1;pointer-events:auto;transform:translateY(0);}
+  .dropdown a{padding:9px 10px;border-radius:6px;font-weight:500;}
+  .dropdown a:hover{background:var(--bg-alt);}
+
+  .nav-actions{display:flex;align-items:center;gap:12px;flex:none;}
+
+  /* ---------- Language Selector & Auth Buttons ---------- */
+  .lang-selector select {
+    appearance: none;
+    background-color: var(--bg-alt);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .lang-selector select:hover {
+    border-color: var(--teal);
+  }
+
+  .auth-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-toggle{display:none;background:none;border:0;padding:6px;}
+  .nav-toggle span{display:block;width:22px;height:2px;background:var(--ink);margin:5px 0;}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:64px 0 40px;}
+  .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;}
+
+  .trust-pill{
+    display:inline-flex;align-items:center;gap:8px;padding:9px 16px;background:var(--bg-alt);
+    color:var(--teal-dark);border-radius:100px;font-size:.85rem;font-weight:700;margin-bottom:22px;
+  }
+  .trust-pill svg{width:15px;height:15px;}
+
+  .hero-copy h1{
+    font-size:clamp(2.4rem, 1.4rem + 3vw, 3.4rem);
+    font-weight:800;line-height:1.15;letter-spacing:-.01em;
+  }
+  .hero-copy h1 .accent{color:var(--teal);}
+  .hero-copy p{margin-top:22px;color:var(--ink-soft);font-size:1.05rem;max-width:46ch;}
+
+  .hero-actions{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap;}
+
+  .proof-row{display:flex;align-items:center;gap:16px;margin-top:38px;flex-wrap:wrap;}
+  .proof-label{font-size:.82rem;font-weight:700;color:var(--ink-soft);width:100%;margin-bottom:4px;}
+  .avatar-stack{display:flex;}
+  .avatar-stack span{
+    width:34px;height:34px;border-radius:50%;border:2px solid #fff;background:var(--teal);
+    color:#fff;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;
+    margin-left:-10px;
+  }
+  html[dir="rtl"] .avatar-stack span {
+    margin-left: 0;
+    margin-right: -10px;
+  }
+  .avatar-stack span:first-child{margin-left:0;}
+  html[dir="rtl"] .avatar-stack span:first-child{margin-right:0;}
+  .rating strong{font-weight:800;}
+  .rating-stars{color:var(--gold);letter-spacing:1px;}
+  .rating-text{font-size:.86rem;color:var(--ink-soft);}
+
+  .hero-visual{position:relative;}
+  .hero-photo{
+    aspect-ratio:4/5;border-radius:28px;overflow:hidden;
+    background:linear-gradient(160deg, #E7F4F0 0%, #CDE9E1 100%);
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .hero-photo svg{width:82%;height:auto;}
+  .hero-photo img{width:100%;height:100%;object-fit:cover;}
+
+  .float-card{
+    position:absolute;background:var(--surface);border-radius:14px;padding:16px 20px;
+    box-shadow:0 16px 32px rgba(18,24,28,.1);display:flex;align-items:center;gap:12px;
+  }
+  .float-card .fc-icon{
+    width:38px;height:38px;border-radius:10px;background:var(--bg-alt);color:var(--teal);
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .float-card strong{display:block;font-size:1rem;font-weight:800;}
+  .float-card span{display:block;font-size:.78rem;color:var(--ink-soft);}
+  .fc-years{top:14%;left:-8%;}
+  .fc-patients{top:6%;right:-6%;flex-direction:row-reverse;text-align:right;}
+  .fc-sameday{bottom:8%;right:-4%;}
+
+  /* specialty quick row */
+  .spec-pills{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:28px 0 8px;
+    border-top:1px solid var(--line);margin-top:44px;
+  }
+  .spec-pill{
+    display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--line);
+    border-radius:100px;font-size:.86rem;font-weight:600;color:var(--ink);
+  }
+  .spec-pill svg{width:16px;height:16px;color:var(--teal);}
+  .spec-pill:hover{border-color:var(--teal);color:var(--teal-dark);}
+  .spec-pills .more{color:var(--ink-soft);font-size:.86rem;padding:10px 4px;}
+
+  /* feature strip */
+  .feature-strip{background:var(--bg-alt);border-radius:20px;margin:20px 0 0;padding:36px 40px;}
+  .feature-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;}
+  .feature-item{display:flex;align-items:flex-start;gap:14px;}
+  .feature-item .fi-icon{
+    width:42px;height:42px;border-radius:50%;border:1.5px solid var(--teal);color:var(--teal);
+    display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .feature-item h4{font-size:.95rem;font-weight:800;}
+  .feature-item p{margin-top:4px;font-size:.86rem;color:var(--ink-soft);}
+
+  /* ---------- Sections ---------- */
+  section{padding:80px 0;}
+  .section-alt{background:var(--bg-alt);}
+  .section-head{max-width:56ch;margin-bottom:44px;}
+  .section-head h2{font-size:clamp(1.6rem,1.2rem + 1.2vw,2.1rem);font-weight:800;}
+  .section-head p{margin-top:12px;color:var(--ink-soft);}
+
+  /* how it works */
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface);}
+  .step{padding:32px 26px;border-left:1px solid var(--line);}
+  html[dir="rtl"] .step {border-left:0;border-right:1px solid var(--line);}
+  .step:first-child{border-left:0;}
+  html[dir="rtl"] .step:first-child{border-right:0;}
+  .step-num{font-size:1.7rem;font-weight:800;color:var(--gold);}
+  .step h3{margin-top:14px;font-size:1.05rem;font-weight:700;}
+  .step p{margin-top:8px;font-size:.9rem;color:var(--ink-soft);}
+
+  /* today's availability widget */
+  .avail-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;}
+  .schedule-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px;}
+  .schedule-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
+  .schedule-head h3{font-size:1.05rem;font-weight:700;}
+  .schedule-head span{display:block;margin-top:4px;font-size:.85rem;color:var(--ink-soft);}
+  .today-pill{background:#FDECC8;color:#7A5A16;font-size:.78rem;font-weight:700;padding:5px 12px;border-radius:100px;flex:none;}
+  .slot{display:flex;align-items:center;justify-content:space-between;padding:13px 4px;border-top:1px solid var(--line);}
+  .slot:first-of-type{border-top:0;}
+  .slot-time{font-weight:700;font-size:.95rem;width:70px;flex:none;}
+  .slot-state{flex:1;font-size:.85rem;color:var(--ink-soft);}
+  .slot.is-booked .slot-time,.slot.is-booked .slot-state{color:#A6AFAA;}
+  .slot-open-tag{color:var(--teal);font-weight:700;font-size:.85rem;flex:1;}
+  .slot-book{flex:none;background:transparent;border:1px solid var(--teal);color:var(--teal);font-size:.82rem;font-weight:700;padding:6px 14px;border-radius:7px;transition:background .2s, color .2s;}
+  .slot-book:hover{background:var(--teal);color:#fff;}
+
+  /* specialties grid */
+  .spec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .spec-tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;display:flex;align-items:center;gap:16px;transition:border-color .2s ease;}
+  .spec-tile:hover{border-color:var(--teal);}
+  .spec-icon{flex:none;width:44px;height:44px;border-radius:10px;background:var(--bg-alt);display:flex;align-items:center;justify-content:center;color:var(--teal);}
+  .spec-tile h4{font-size:.98rem;font-weight:700;}
+  .spec-tile a{font-size:.82rem;color:var(--ink-soft);margin-top:3px;display:inline-block;}
+  .spec-tile a:hover{color:var(--teal-dark);}
+
+  /* testimonials */
+  .review-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .review-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:26px;}
+  .stars{display:flex;gap:3px;color:var(--gold);margin-bottom:14px;}
+  .review-card p{font-size:.94rem;color:var(--ink);}
+  .review-who{margin-top:18px;display:flex;align-items:center;gap:10px;}
+  .review-avatar{width:36px;height:36px;border-radius:50%;background:var(--teal);color:#fff;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;}
+  .review-who strong{display:block;font-size:.88rem;}
+  .review-who span{font-size:.78rem;color:var(--ink-soft);}
+
+  /* CTA band */
+  .cta-band{background:var(--teal-dark);color:#fff;border-radius:20px;padding:56px 48px;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap;}
+  .cta-band h2{font-size:clamp(1.4rem,1.1rem + 1vw,1.9rem);font-weight:800;max-width:22ch;}
+  .cta-band p{margin-top:10px;color:#BFE0D6;font-size:.95rem;}
+  .cta-band .btn-solid{background:var(--gold);color:#3A2A05;}
+  .cta-band .btn-solid:hover{background:#E0961A;}
+
+  /* ---------- Footer ---------- */
+  footer{border-top:1px solid var(--line);padding:56px 0 28px;}
+  .footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px;}
+  .footer-grid h5{font-size:.92rem;font-weight:800;margin-bottom:14px;}
+  .footer-grid p{font-size:.88rem;color:var(--ink-soft);max-width:32ch;}
+  .footer-grid ul li{margin-bottom:9px;font-size:.88rem;color:var(--ink-soft);}
+  .footer-grid ul li a:hover{color:var(--teal-dark);}
+  .footer-bottom{margin-top:40px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;color:var(--ink-soft);font-size:.82rem;flex-wrap:wrap;gap:10px;}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:960px){
+    .hero-grid{grid-template-columns:1fr;}
+    .hero-visual{order:-1;max-width:420px;margin:0 auto 60px;}
+    .float-card{padding:12px 16px;}
+    .fc-years{left:-4%;}
+    .fc-patients{right:-2%;}
+    .fc-sameday{right:0;}
+    .feature-grid{grid-template-columns:1fr 1fr;}
+    .steps{grid-template-columns:1fr 1fr;}
+    .step{border-left:1px solid var(--line);border-bottom:1px solid var(--line);}
+    .step:nth-child(2n){border-left:0;}
+    .avail-grid{grid-template-columns:1fr;}
+    .spec-grid{grid-template-columns:1fr 1fr;}
+    .review-grid{grid-template-columns:1fr;}
+    .footer-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:640px){
+    .nav-links{display:none;}
+    .nav-toggle{display:block;}
+    .feature-grid{grid-template-columns:1fr;}
+    .steps{grid-template-columns:1fr;}
+    .step{border-left:0!important;border-right:0!important;border-bottom:1px solid var(--line);}
+    .spec-grid{grid-template-columns:1fr;}
+    .footer-grid{grid-template-columns:1fr;}
+    .cta-band{padding:36px 24px;flex-direction:column;text-align:center;}
+    .float-card{position:static;margin-top:12px;box-shadow:none;border:1px solid var(--line);}
+    .hero-visual{display:flex;flex-direction:column;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto;}
+    *{transition:none!important;}
+  }
+
+  /* ---------- Django messages ---------- */
+  .messages{padding:16px 0 0;}
+  .messages ul{display:flex;flex-direction:column;gap:10px;}
+  .message-item{
+    display:flex;align-items:center;gap:10px;padding:13px 18px;border-radius:10px;
+    font-size:.9rem;font-weight:600;border:1px solid transparent;
+  }
+  .message-item svg{flex:none;width:18px;height:18px;}
+  .message-success{background:#E7F6EE;color:#146354;border-color:#BFE6D1;}
+  .message-error{background:#FDECEC;color:#B3261E;border-color:#F5C2C0;}
+  .message-warning{background:#FEF6E5;color:#7A5A16;border-color:#F5DFAE;}
+  .message-info{background:var(--bg-alt);color:var(--teal-dark);border-color:#CDE9E1;}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container nav">
+    <div class="brand">
+      <a href="{% url 'home' %}" class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 21s-7.5-4.6-9.5-9.2C1 8.1 3 4.5 6.6 4.5c2 0 3.2 1 3.4 2.4C10.2 5.5 11.4 4.5 13.4 4.5c3.6 0 5.6 3.6 4.1 7.3C15.5 16.4 12 21 12 21z"/>
+        </svg>
+      </a>
+      <div class="brand-text">
+        <strong>CareWell Clinic</strong>
+        <span>HEALTHCARE</span>
+      </div>
+    </div>
+
+    <nav class="nav-links">
+      <a href="{% url 'home' %}" class="is-active">{% trans "Home" %}</a>
+      <a href="#about">{% trans "About Us" %}</a>
+      <div class="has-dropdown">
+        <a href="#specialties">{% trans "Services" %} <span class="chevron"></span></a>
+        <div class="dropdown">
+          <a href="#specialties">{% trans "All Specialties" %}</a>
+          <a href="#book">{% trans "Book a Visit" %}</a>
+        </div>
+      </div>
+      <a href="#doctors">{% trans "Our Doctors" %}</a>
+      <div class="has-dropdown">
+        <a href="#">{% trans "Patient Info" %} <span class="chevron"></span></a>
+        <div class="dropdown">
+          <a href="#">{% trans "Insurance" %}</a>
+          <a href="#reviews">{% trans "Patient Reviews" %}</a>
+        </div>
+      </div>
+      <a href="#contact">{% trans "Contact" %}</a>
+    </nav>
+
+    <div class="nav-actions">
+      <!-- انتخاب‌گر زبان -->
+      <div class="lang-selector">
+        <form action="{% url 'set_language' %}" method="post">
+          {% csrf_token %}
+          <input name="next" type="hidden" value="{{ request.get_full_path }}">
+          <select name="language" onchange="this.form.submit()">
+            <option value="fa" {% if LANGUAGE_CODE == 'fa' %}selected{% endif %}>🇮🇷 فارسی</option>
+            <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>🇬🇧 English</option>
+          </select>
+        </form>
+      </div>
+
+      <!-- دکمه‌های ورود و ثبت‌نام -->
+      <div class="auth-buttons">
+        {% if user.is_authenticated %}
+          <a href="{% url 'accounts:dashboard' %}" class="btn btn-solid">{% trans "Profile" %}</a>
+          <a href="{% url 'logout' %}" class="btn btn-ghost">{% trans "Logout" %}</a>
+        {% else %}
+          <a href="{% url 'login' %}" class="btn btn-ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+              <polyline points="10 17 15 12 10 7"></polyline>
+              <line x1="15" y1="12" x2="3" y2="12"></line>
+            </svg>
+            {% trans "Login" %}
+          </a>
+          <a href="{% url 'signup' %}" class="btn btn-solid">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+            {% trans "Sign Up" %}
+          </a>
+        {% endif %}
+      </div>
+
+      <button class="nav-toggle" aria-label="Open menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  {% if messages %}
+    <div class="messages">
+      <div class="container">
+        <ul>
+          {% for message in messages %}
+            <li class="message-item message-{{ message.tags|default:'info' }}">
+              {% if message.tags == 'success' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+              {% elif message.tags == 'error' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+              {% endif %}
+              <span>{{ message }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+  {% block content %}
+
+  <!-- ---------- Hero ---------- -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <span class="trust-pill">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.1 3 4.5 6.6 4.5c2 0 3.2 1 3.4 2.4C10.2 5.5 11.4 4.5 13.4 4.5c3.6 0 5.6 3.6 4.1 7.3C15.5 16.4 12 21 12 21z"/></svg>
+            Trusted Care. Better Health. Brighter You.
+          </span>
+
+          <h1>Compassionate Care<br>For a Healthier,<br><span class="accent">Happier You.</span></h1>
+          <p>Our clinic offers advanced medical care with a personal touch. Find a doctor, pick an open time slot and pay online — your confirmation lands in your inbox right away.</p>
+
+          <div class="hero-actions">
+            <a href="#book" class="btn btn-solid">
+              Book Your Appointment
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#specialties" class="btn btn-ghost">
+              Explore Services
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+
+          <div class="proof-row">
+            <span class="proof-label">Highly Rated by Our Patients</span>
+            <div class="avatar-stack">
+              <span>AM</span><span>SK</span><span>JR</span><span>NP</span><span>+</span>
+            </div>
+            <div class="rating">
+              <span class="rating-stars">★★★★★</span>
+              <span class="rating-text"><strong>4.9/5</strong> from 1,200+ reviews</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="hero-photo">
+            <svg viewBox="0 0 400 460" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of a doctor">
+              <defs>
+                <clipPath id="headClip"><circle cx="200" cy="195" r="66"/></clipPath>
+              </defs>
+              <circle cx="300" cy="90" r="60" fill="#FFFFFF" opacity=".45"/>
+              <circle cx="60" cy="330" r="80" fill="#FFFFFF" opacity=".35"/>
+
+              <path d="M62 460 C62 340 118 270 200 270 C282 270 338 340 338 460 Z" fill="#FFFFFF" stroke="#D8E4E0" stroke-width="3"/>
+              <path d="M168 274 L146 400 L200 378 L254 400 L232 274" fill="#FFFFFF" stroke="#D8E4E0" stroke-width="2"/>
+              <path d="M176 278 L200 336 L224 278 L224 270 L176 270 Z" fill="var(--teal)"/>
+
+              <path d="M158 274 C146 316 146 350 174 366 C190 375 206 369 206 350" fill="none" stroke="#8A9490" stroke-width="7" stroke-linecap="round"/>
+              <path d="M242 274 C254 316 254 350 226 366" fill="none" stroke="#8A9490" stroke-width="7" stroke-linecap="round"/>
+              <circle cx="206" cy="354" r="11" fill="#C9CFCE" stroke="#8A9490" stroke-width="2"/>
+
+              <rect x="150" y="318" width="32" height="20" rx="3" fill="#FFFFFF" stroke="#D8E4E0" stroke-width="2"/>
+              <rect x="155" y="323" width="22" height="4" rx="2" fill="var(--teal)"/>
+              <rect x="155" y="329" width="14" height="4" rx="2" fill="#C7D2CE"/>
+
+              <rect x="182" y="228" width="36" height="48" rx="14" fill="#E3AE82"/>
+
+              <circle cx="200" cy="195" r="66" fill="#E3AE82"/>
+              <circle cx="133" cy="200" r="10" fill="#E3AE82"/>
+              <circle cx="267" cy="200" r="10" fill="#E3AE82"/>
+
+              <g clip-path="url(#headClip)">
+                <rect x="128" y="128" width="144" height="86" fill="#3B2A22"/>
+              </g>
+
+              <circle cx="178" cy="200" r="6" fill="#2B2320"/>
+              <circle cx="222" cy="200" r="6" fill="#2B2320"/>
+              <path d="M180 230 Q200 245 220 230" fill="none" stroke="#2B2320" stroke-width="4" stroke-linecap="round"/>
+              <circle cx="163" cy="217" r="9" fill="#D9986A" opacity=".35"/>
+              <circle cx="237" cy="217" r="9" fill="#D9986A" opacity=".35"/>
+            </svg>
+          </div>
+          <div class="float-card fc-years">
+            <span class="fc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 6.5 1-4.7 4.6L18 20l-6-3.2L6 20l1.2-6.4L2.5 9l6.5-1z"/></svg></span>
+            <span><strong>15+ Years</strong><span>Of Trusted Care</span></span>
+          </div>
+          <div class="float-card fc-patients">
+            <span class="fc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c1-3.2 3.4-5 6.5-5s5.5 1.8 6.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.3c2.3.3 4 1.9 4.8 4.4"/></svg></span>
+            <span><strong>10,000+</strong><span>Patients Trust Us</span></span>
+          </div>
+          <div class="float-card fc-sameday">
+            <span class="fc-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg></span>
+            <span><strong>Same-Day</strong><span>Appointments</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec-pills">
+        <a href="#specialties" class="spec-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.1 3 4.5 6.6 4.5c2 0 3.2 1 3.4 2.4C10.2 5.5 11.4 4.5 13.4 4.5c3.6 0 5.6 3.6 4.1 7.3C15.5 16.4 12 21 12 21z"/></svg>General Medicine</a>
+        <a href="#specialties" class="spec-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="7" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Pediatrics</a>
+        <a href="#specialties" class="spec-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="5"/><path d="M7 21l1.5-6M17 21l-1.5-6"/></svg>Dermatology</a>
+        <a href="#specialties" class="spec-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3c-2 0-3.5 1.6-3.5 4 0 2.6.8 4 .8 7 0 3 1.2 6.5 2.9 6.5 1.4 0 1.5-3 1.8-5 .2-1.3.6-2 2-2s1.8.7 2 2c.3 2 .4 5 1.8 5 1.7 0 2.9-3.5 2.9-6.5 0-3 .8-4.4.8-7C19.5 4.6 18 3 16 3c-1.4 0-2.2.7-2.7 1.6C13 5.5 12.6 6 12 6s-1-.5-1.3-1.4C10.2 3.7 9.4 3 8 3z"/></svg>Dental Care</a>
+        <a href="#specialties" class="spec-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M12 12v8M9 17h6"/></svg>Women's Health</a>
+        <a href="#specialties" class="spec-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 2h6M10 2v6l-5 10a2 2 0 002 3h10a2 2 0 002-3l-5-10V2"/></svg>Lab Tests</a>
+        <span class="more">and more...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Feature strip ---------- -->
+  <section style="padding:0 0 24px;">
+    <div class="container">
+      <div class="feature-strip">
+        <div class="feature-grid">
+          <div class="feature-item">
+            <span class="fi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <div><h4>Open 7 Days a Week</h4><p>We're here when you need us most.</p></div>
+          </div>
+          <div class="feature-item">
+            <span class="fi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.3 7-12a7 7 0 10-14 0c0 5.7 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></span>
+            <div><h4>Easy Online Booking</h4><p>Pick a time and book in under 2 minutes.</p></div>
+          </div>
+          <div class="feature-item">
+            <span class="fi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+            <div><h4>Verified Specialist Doctors</h4><p>Experienced & compassionate care team.</p></div>
+          </div>
+          <div class="feature-item">
+            <span class="fi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 15h6M9 11h4"/></svg></span>
+            <div><h4>Instant E-Receipts</h4><p>Detailed receipt sent straight to your email.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- How it works ---------- -->
+  <section class="section-alt" id="about">
+    <div class="container">
+      <div class="section-head">
+        <h2>How Online Booking Works</h2>
+        <p>A simple three-step process to get you the medical care you need, without waiting on hold.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h3>Find Your Doctor</h3>
+          <p>Browse by specialty, location or medical condition. Read real patient reviews before deciding.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h3>Select a Slot</h3>
+          <p>See real-time available time slots and choose the one that best fits your busy daily schedule.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h3>Pay & Confirm</h3>
+          <p>Pay securely online using credit card or health plan. Receive instant confirmation & calendar invite.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <h3>Visit or Connect</h3>
+          <p>Arrive at the clinic or join your video consultation. Your medical records are saved in your portal.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Live availability widget / Book ---------- -->
+  <section id="book">
+    <div class="container">
+      <div class="avail-grid">
+        <div>
+          <div class="section-head" style="margin-bottom:24px;">
+            <h2>Book an Appointment Today</h2>
+            <p>Select a time with Dr. Sarah Jenkins (General Practitioner). Same-day and next-day visits are available.</p>
+          </div>
+          <p style="color:var(--ink-soft);font-size:.95rem;">
+            Need a different doctor or specialty? Use the menu above to explore all available physicians and specialized departments.
+          </p>
+          <div style="margin-top:28px;">
+            <a href="{% url 'doctors:doctor_list' %}" class="btn btn-solid">{% trans "View All Doctors" %}</a>
+          </div>
+        </div>
+
+        <div class="schedule-card">
+          <div class="schedule-head">
+            <div>
+              <h3>Dr. Sarah Jenkins</h3>
+              <span>General Practitioner • CareWell Main Clinic</span>
+            </div>
+            <span class="today-pill">Today, Oct 24</span>
+          </div>
+
+          <div class="slot is-booked">
+            <span class="slot-time">09:00 AM</span>
+            <span class="slot-state">Already Booked</span>
+          </div>
+          <div class="slot is-booked">
+            <span class="slot-time">10:30 AM</span>
+            <span class="slot-state">Already Booked</span>
+          </div>
+          <div class="slot">
+            <span class="slot-time">01:15 PM</span>
+            <span class="slot-open-tag">Available</span>
+            <button class="slot-book">Select</button>
+          </div>
+          <div class="slot">
+            <span class="slot-time">03:00 PM</span>
+            <span class="slot-open-tag">Available</span>
+            <button class="slot-book">Select</button>
+          </div>
+          <div class="slot">
+            <span class="slot-time">04:45 PM</span>
+            <span class="slot-open-tag">Available</span>
+            <button class="slot-book">Select</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Specialties ---------- -->
+  <section class="section-alt" id="specialties">
+    <div class="container">
+      <div class="section-head">
+        <h2>Medical Specialties</h2>
+        <p>Comprehensive medical care across a wide range of specialized departments.</p>
+      </div>
+
+      <div class="spec-grid">
+        <div class="spec-tile">
+          <div class="spec-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.1 3 4.5 6.6 4.5c2 0 3.2 1 3.4 2.4C10.2 5.5 11.4 4.5 13.4 4.5c3.6 0 5.6 3.6 4.1 7.3C15.5 16.4 12 21 12 21z"/></svg></div>
+          <div>
+            <h4>Cardiology</h4>
+            <a href="#">3 Specialist Doctors &rarr;</a>
+          </div>
+        </div>
+        <div class="spec-tile">
+          <div class="spec-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></div>
+          <div>
+            <h4>Pediatrics</h4>
+            <a href="#">5 Specialist Doctors &rarr;</a>
+          </div>
+        </div>
+        <div class="spec-tile">
+          <div class="spec-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><path d="M7 21l1.5-6M17 21l-1.5-6"/></svg></div>
+          <div>
+            <h4>Dermatology</h4>
+            <a href="#">2 Specialist Doctors &rarr;</a>
+          </div>
+        </div>
+        <div class="spec-tile">
+          <div class="spec-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3c-2 0-3.5 1.6-3.5 4 0 2.6.8 4 .8 7 0 3 1.2 6.5 2.9 6.5 1.4 0 1.5-3 1.8-5 .2-1.3.6-2 2-2s1.8.7 2 2c.3 2 .4 5 1.8 5 1.7 0 2.9-3.5 2.9-6.5 0-3 .8-4.4.8-7C19.5 4.6 18 3 16 3c-1.4 0-2.2.7-2.7 1.6C13 5.5 12.6 6 12 6s-1-.5-1.3-1.4C10.2 3.7 9.4 3 8 3z"/></svg></div>
+          <div>
+            <h4>Dentistry</h4>
+            <a href="#">4 Specialist Doctors &rarr;</a>
+          </div>
+        </div>
+        <div class="spec-tile">
+          <div class="spec-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M12 12v8M9 17h6"/></svg></div>
+          <div>
+            <h4>Gynecology</h4>
+            <a href="#">3 Specialist Doctors &rarr;</a>
+          </div>
+        </div>
+        <div class="spec-tile">
+          <div class="spec-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h5l2-6 4 12 2-6h7"/></svg></div>
+          <div>
+            <h4>Neurology</h4>
+            <a href="#">2 Specialist Doctors &rarr;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Reviews ---------- -->
+  <section id="reviews">
+    <div class="container">
+      <div class="section-head">
+        <h2>What Our Patients Say</h2>
+        <p>Real stories from verified patients who booked and visited CareWell Clinic.</p>
+      </div>
+
+      <div class="review-grid">
+        <div class="review-card">
+          <div class="stars">★★★★★</div>
+          <p>“Booking an appointment took literally two minutes. I was able to see Dr. Sarah on the same afternoon, and the online payment made checkout completely seamless.”</p>
+          <div class="review-who">
+            <span class="review-avatar">EK</span>
+            <div><strong>Emily K.</strong><span>General Practice Patient</span></div>
+          </div>
+        </div>
+        <div class="review-card">
+          <div class="stars">★★★★★</div>
+          <p>“CareWell Clinic is clean, modern, and the doctors genuinely care. The automated confirmation email contained a calendar invite which was super convenient!”</p>
+          <div class="review-who">
+            <span class="review-avatar">MR</span>
+            <div><strong>Marcus R.</strong><span>Pediatrics Parent</span></div>
+          </div>
+        </div>
+        <div class="review-card">
+          <div class="stars">★★★★★</div>
+          <p>“I love that I can browse all open time slots and pick what works for my work schedule. No phone calls, no waiting on hold. Highly recommended!”</p>
+          <div class="review-who">
+            <span class="review-avatar">HA</span>
+            <div><strong>Hannah A.</strong><span>Dermatology Patient</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- CTA Band ---------- -->
+  <section style="padding:0 0 80px;">
+    <div class="container">
+      <div class="cta-band">
+        <div>
+          <h2>Ready to Take Care of Your Health?</h2>
+          <p>Book your visit today or register a new patient account in less than two minutes.</p>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="#book" class="btn btn-solid">Book an Appointment</a>
+          <a href="#contact" class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4);">Contact Us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {% endblock %}
+</main>
+
+<!-- ---------- Footer ---------- -->
+<footer id="contact">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="brand" style="margin-bottom:14px;">
+          <a href="{% url 'home' %}" class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 21s-7.5-4.6-9.5-9.2C1 8.1 3 4.5 6.6 4.5c2 0 3.2 1 3.4 2.4C10.2 5.5 11.4 4.5 13.4 4.5c3.6 0 5.6 3.6 4.1 7.3C15.5 16.4 12 21 12 21z"/>
+            </svg>
+          </a>
+          <div class="brand-text">
+            <strong>CareWell Clinic</strong>
+            <span>HEALTHCARE</span>
+          </div>
+        </div>
+        <p>Providing high-quality, compassionate medical services for individuals and families in our community.</p>
+      </div>
+
+      <div>
+        <h5>Quick Links</h5>
+        <ul>
+          <li><a href="{% url 'home' %}">{% trans "Home" %}</a></li>
+          <li><a href="#about">{% trans "About Us" %}</a></li>
+          <li><a href="#specialties">{% trans "Services" %}</a></li>
+          <li><a href="#doctors">{% trans "Our Doctors" %}</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h5>Patient Care</h5>
+        <ul>
+          <li><a href="#book">{% trans "Book Visit" %}</a></li>
+          <li><a href="#">{% trans "Insurance" %}</a></li>
+          <li><a href="#reviews">{% trans "Patient Reviews" %}</a></li>
+          <li><a href="#">{% trans "FAQ" %}</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h5>Contact Us</h5>
+        <ul>
+          <li>📍 123 Healthcare Blvd, Suite 100</li>
+          <li>📞 (555) 234-5678</li>
+          <li>✉️ info@carewellclinic.com</li>
+          <li>⏰ Mon-Sun: 8:00 AM - 8:00 PM</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; {% now "Y" %} CareWell Clinic. All rights reserved.</span>
+      <div style="display:flex;gap:18px;">
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

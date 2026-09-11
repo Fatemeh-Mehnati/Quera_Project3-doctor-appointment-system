@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% blocktrans with first=doctor.user.first_name last=doctor.user.last_name %}Dr. {{ first }} {{ last }}{% endblocktrans %} | CareWell Clinic{% endblock %}
+{% block description %}{% blocktrans with first=doctor.user.first_name last=doctor.user.last_name %}Book an appointment with Dr. {{ first }} {{ last }} online.{% endblocktrans %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- Doctor detail page ---------- */
+  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--ink-soft);padding:24px 0 0;}
+  .breadcrumb a:hover{color:var(--teal-dark);}
+  .breadcrumb .sep{opacity:.5;}
+
+  .doctor-hero{padding:24px 0 48px;}
+  .doctor-hero-grid{display:grid;grid-template-columns:2fr 1fr;gap:32px;align-items:start;}
+
+  .doctor-profile-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:32px;
+  }
+  .doctor-profile-top{display:flex;align-items:center;gap:20px;}
+  .doctor-profile-avatar{
+    flex:none;width:84px;height:84px;border-radius:50%;background:var(--bg-alt);
+    color:var(--teal-dark);font-weight:800;font-size:1.5rem;display:flex;align-items:center;justify-content:center;
+  }
+  .doctor-profile-name{font-size:1.4rem;font-weight:800;}
+  .doctor-profile-verified{
+    display:inline-flex;align-items:center;gap:5px;font-size:.82rem;font-weight:700;color:var(--teal);margin-top:6px;
+  }
+  .doctor-profile-verified svg{width:13px;height:13px;}
+
+  .doctor-specialties{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;}
+  .doctor-specialties span{
+    font-size:.8rem;font-weight:600;color:var(--teal-dark);background:var(--bg-alt);
+    padding:7px 14px;border-radius:100px;
+  }
+
+  .doctor-bio{margin-top:22px;padding-top:22px;border-top:1px solid var(--line);color:var(--ink-soft);font-size:.95rem;}
+  .doctor-bio h3{font-size:1rem;font-weight:800;color:var(--ink);margin-bottom:10px;}
+
+  .doctor-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px;padding-top:22px;border-top:1px solid var(--line);}
+  .meta-item{display:flex;align-items:center;gap:10px;}
+  .meta-item .mi-icon{
+    flex:none;width:38px;height:38px;border-radius:10px;background:var(--bg-alt);color:var(--teal);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .meta-item strong{display:block;font-size:.86rem;font-weight:700;}
+  .meta-item span{display:block;font-size:.8rem;color:var(--ink-soft);}
+
+  /* booking sidebar */
+  .booking-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;
+    position:sticky;top:100px;
+  }
+  .booking-card h3{font-size:1.02rem;font-weight:800;}
+  .booking-card .sub{font-size:.85rem;color:var(--ink-soft);margin-top:4px;}
+
+  .slot-list{margin-top:20px;display:flex;flex-direction:column;gap:10px;max-height:520px;overflow-y:auto;}
+  .slot-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:13px 14px;border:1px solid var(--line);border-radius:10px;transition:border-color .2s ease;
+  }
+  .slot-row:hover{border-color:var(--teal);}
+  .slot-row-info{display:flex;flex-direction:column;gap:2px;}
+  .slot-date{font-size:.78rem;font-weight:700;color:var(--ink-soft);}
+  .slot-time{font-size:.95rem;font-weight:800;}
+  .slot-price{font-size:.82rem;color:var(--teal-dark);font-weight:700;}
+  .slot-book-btn{
+    flex:none;background:var(--teal);color:#fff;border:0;font-size:.82rem;font-weight:700;
+    padding:9px 16px;border-radius:8px;transition:background .2s ease;
+  }
+  .slot-book-btn:hover{background:var(--teal-dark);}
+
+  .no-slots{
+    margin-top:20px;padding:28px 16px;text-align:center;background:var(--bg-alt);border-radius:12px;
+  }
+  .no-slots p{font-size:.88rem;color:var(--ink-soft);}
+
+  @media (max-width:900px){
+    .doctor-hero-grid{grid-template-columns:1fr;}
+    .booking-card{position:static;}
+    .doctor-meta-grid{grid-template-columns:1fr;}
+  }
+
+  /* ---------- Rating stars ---------- */
+  .stars{display:inline-flex;gap:2px;color:var(--gold);font-size:1rem;line-height:1;}
+  .stars .star-empty{color:var(--line);}
+  .rating-inline{
+    display:inline-flex;align-items:center;gap:6px;font-size:.85rem;font-weight:700;color:var(--ink);margin-top:8px;
+  }
+  .rating-inline .rating-count{font-weight:500;color:var(--ink-soft);}
+  .no-rating{font-size:.82rem;color:var(--ink-soft);margin-top:8px;}
+
+  /* ---------- Reviews section ---------- */
+  .reviews-section{padding:0 0 80px;}
+  .reviews-grid{display:grid;grid-template-columns:1fr 1.6fr;gap:24px;align-items:start;}
+
+  .reviews-summary{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px;
+    text-align:center;position:sticky;top:100px;
+  }
+  .reviews-summary .avg-number{font-size:2.6rem;font-weight:800;color:var(--teal-dark);}
+  .reviews-summary .stars{font-size:1.3rem;justify-content:center;margin-top:6px;}
+  .reviews-summary .avg-count{font-size:.85rem;color:var(--ink-soft);margin-top:8px;}
+
+  .review-form-card{margin-top:20px;text-align:right;padding-top:20px;border-top:1px solid var(--line);}
+  .review-form-card h4{font-size:.92rem;font-weight:800;margin-bottom:12px;}
+  .review-form .rating-radio{display:flex;gap:6px;justify-content:center;margin-bottom:14px;}
+  .review-form .rating-radio label{
+    display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:8px;
+    border:1px solid var(--line);font-weight:700;font-size:.9rem;cursor:pointer;transition:all .15s ease;
+  }
+  .review-form .rating-radio input{position:absolute;opacity:0;pointer-events:none;}
+  .review-form .rating-radio input:checked + label,
+  .review-form .rating-radio label:has(input:checked){
+    background:var(--gold);border-color:var(--gold);color:#3A2A05;
+  }
+  .review-form textarea{
+    width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:9px;
+    font-family:inherit;font-size:.9rem;color:var(--ink);background:var(--bg);outline:none;resize:vertical;
+  }
+  .review-form textarea:focus{border-color:var(--teal);}
+  .review-form .btn{width:100%;justify-content:center;margin-top:12px;}
+  .review-hint{font-size:.8rem;color:var(--ink-soft);margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+
+  .review-list{display:flex;flex-direction:column;gap:16px;}
+  .review-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;}
+  .review-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .review-patient{display:flex;align-items:center;gap:12px;}
+  .review-avatar{
+    flex:none;width:40px;height:40px;border-radius:50%;background:var(--bg-alt);color:var(--teal-dark);
+    font-weight:800;font-size:.82rem;display:flex;align-items:center;justify-content:center;
+  }
+  .review-patient strong{font-size:.9rem;font-weight:700;display:block;}
+  .review-patient span{font-size:.76rem;color:var(--ink-soft);}
+  .review-card p{margin-top:14px;color:var(--ink);font-size:.9rem;line-height:1.8;}
+
+  .empty-reviews{
+    text-align:center;padding:50px 20px;background:var(--bg-alt);border-radius:16px;color:var(--ink-soft);font-size:.9rem;
+  }
+
+  @media (max-width:900px){
+    .reviews-grid{grid-template-columns:1fr;}
+    .reviews-summary{position:static;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ---------- Breadcrumb ---------- -->
+<div class="container">
+  <nav class="breadcrumb" aria-label="{% trans 'Breadcrumb' %}">
+    <a href="{% url 'home' %}">{% trans "Home" %}</a>
+    <span class="sep">/</span>
+    <a href="{% url 'doctors:doctor_list' %}">{% trans "Our Doctors" %}</a>
+    <span class="sep">/</span>
+    <span>{% blocktrans with first=doctor.user.first_name last=doctor.user.last_name %}Dr. {{ first }} {{ last }}{% endblocktrans %}</span>
+  </nav>
+</div>
+
+<!-- ---------- Doctor profile + booking ---------- -->
+<section class="doctor-hero">
+  <div class="container">
+    <div class="doctor-hero-grid">
+
+      <!-- Profile -->
+      <div class="doctor-profile-card">
+        <div class="doctor-profile-top">
+          <div class="doctor-profile-avatar">
+            {{ doctor.user.first_name|first|upper }}{{ doctor.user.last_name|first|upper }}
+          </div>
+          <div>
+            <div class="doctor-profile-name">
+              {% blocktrans with first=doctor.user.first_name last=doctor.user.last_name %}Dr. {{ first }} {{ last }}{% endblocktrans %}
+            </div>
+            <span class="doctor-profile-verified">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+              {% trans "Verified Doctor" %}
+            </span>
+            {% if doctor.avg_rating %}
+              <div class="rating-inline">
+                <span class="stars">
+                  {% for i in "12345" %}
+                    {% if forloop.counter <= doctor.avg_rating|floatformat:0|add:0 %}★{% else %}<span class="star-empty">★</span>{% endif %}
+                  {% endfor %}
+                </span>
+                {{ doctor.avg_rating|floatformat:1 }}
+                <span class="rating-count">({% blocktrans count counter=reviews_count %}{{ counter }} review{% plural %}{{ counter }} reviews{% endblocktrans %})</span>
+              </div>
+            {% else %}
+              <div class="no-rating">{% trans "No ratings yet" %}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if specialties %}
+          <div class="doctor-specialties">
+            {% for specialty in specialties %}
+              <span>{{ specialty.name }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="doctor-meta-grid" style="border-top:1px solid var(--line);">
+          <div class="meta-item">
+            <span class="mi-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
+            </span>
+            <div>
+              <strong>{% trans "Online Booking" %}</strong>
+              <span>{% trans "Book instantly, pay online" %}</span>
+            </div>
+          </div>
+          <div class="meta-item">
+            <span class="mi-icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <div>
+              <strong>{% trans "Verified Specialist" %}</strong>
+              <span>{% trans "Approved by CareWell Clinic" %}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking sidebar -->
+      <div class="booking-card">
+        <h3>{% trans "Available Time Slots" %}</h3>
+        <span class="sub">{% trans "Pick a time to book your visit" %}</span>
+
+        {% if slots %}
+          <div class="slot-list">
+            {% for item in slots %}
+              <div class="slot-row">
+                <div class="slot-row-info">
+                  <span class="slot-date">{{ item.slot.start_at|date:"D, d M" }}</span>
+                  <span class="slot-time">{{ item.slot.start_at|date:"H:i" }}</span>
+                  {% if item.price %}
+                    <span class="slot-price">{{ item.price }} {% trans "Toman" %}</span>
+                  {% endif %}
+                </div>
+                <form method="post" action="{% url 'appointments:reserve' slot_id=item.slot.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="slot-book-btn">{% trans "Book" %}</button>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="no-slots">
+            <p>{% trans "No available time slots right now. Please check back later." %}</p>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Reviews & ratings ---------- -->
+<section class="reviews-section">
+  <div class="container">
+    <div class="section-head">
+      <h2>{% trans "Patient Reviews" %}</h2>
+      <p>{% trans "Feedback from patients who have actually visited this doctor." %}</p>
+    </div>
+
+    <div class="reviews-grid">
+
+      <!-- Summary + review form -->
+      <div class="reviews-summary">
+        {% if doctor.avg_rating %}
+          <div class="avg-number">{{ doctor.avg_rating|floatformat:1 }}</div>
+          <div class="stars">
+            {% for i in "12345" %}
+              {% if forloop.counter <= doctor.avg_rating|floatformat:0|add:0 %}★{% else %}<span class="star-empty">★</span>{% endif %}
+            {% endfor %}
+          </div>
+          <div class="avg-count">
+            {% blocktrans count counter=reviews_count %}Based on {{ counter }} review{% plural %}Based on {{ counter }} reviews{% endblocktrans %}
+          </div>
+        {% else %}
+          <div class="avg-number" style="color:var(--ink-soft);">&mdash;</div>
+          <div class="avg-count">{% trans "No reviews yet" %}</div>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+          {% if can_review %}
+            <div class="review-form-card">
+              <h4>{% if existing_review %}{% trans "Update Your Review" %}{% else %}{% trans "Write a Review" %}{% endif %}</h4>
+              <form method="post" action="{% url 'doctors:submit_review' pk=doctor.pk %}" class="review-form">
+                {% csrf_token %}
+
+                <div class="rating-radio">
+                  {% for radio in review_form.rating %}
+                    {{ radio.tag }}
+                    <label for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                  {% endfor %}
+                </div>
+                {% if review_form.rating.errors %}<ul class="errorlist">{{ review_form.rating.errors }}</ul>{% endif %}
+
+                {{ review_form.comment }}
+                {% if review_form.comment.errors %}<ul class="errorlist">{{ review_form.comment.errors }}</ul>{% endif %}
+
+                <button type="submit" class="btn btn-solid">
+                  {% if existing_review %}{% trans "Update Review" %}{% else %}{% trans "Submit Review" %}{% endif %}
+                </button>
+              </form>
+            </div>
+          {% else %}
+            <div class="review-hint">{% trans "Only patients who have completed a visit with this doctor can leave a review." %}</div>
+          {% endif %}
+        {% else %}
+          <div class="review-hint">
+            <a href="{% url 'login' %}?next={{ request.path }}">{% trans "Log in" %}</a>
+            {% trans "to write a review after your visit." %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Review list -->
+      <div class="review-list">
+        {% if reviews %}
+          {% for review in reviews %}
+            <div class="review-card">
+              <div class="review-card-head">
+                <div class="review-patient">
+                  <span class="review-avatar">
+                    {{ review.patient_user.first_name|first|upper }}{{ review.patient_user.last_name|first|upper }}
+                  </span>
+                  <div>
+                    <strong>{{ review.patient_user.first_name }} {{ review.patient_user.last_name }}</strong>
+                    <span>{{ review.created_at|date:"D, d M Y" }}</span>
+                  </div>
+                </div>
+                <span class="stars">
+                  {% for i in "12345" %}
+                    {% if forloop.counter <= review.rating %}★{% else %}<span class="star-empty">★</span>{% endif %}
+                  {% endfor %}
+                </span>
+              </div>
+              {% if review.comment %}<p>{{ review.comment }}</p>{% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-reviews">{% trans "No reviews yet. Be the first to share your experience." %}</div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{% endblock %}

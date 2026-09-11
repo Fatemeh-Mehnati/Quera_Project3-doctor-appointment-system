@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Wallet Transactions" %} | CareWell Clinic{% endblock %}
+{% block description %}{% trans "Full history of your wallet transactions." %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- Wallet transactions page ---------- */
+  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--ink-soft);padding:24px 0 0;}
+  .breadcrumb a:hover{color:var(--teal-dark);}
+  .breadcrumb .sep{opacity:.5;}
+
+  .txns-page{padding:24px 0 80px;}
+  .txns-page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:28px;}
+  .txns-page-head h2{font-size:clamp(1.5rem,1.2rem + 1vw,1.9rem);font-weight:800;}
+  .txns-page-head p{margin-top:8px;color:var(--ink-soft);}
+  .balance-pill{
+    display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+    padding:12px 20px;background:var(--bg-alt);border-radius:12px;
+  }
+  .balance-pill span{font-size:.78rem;font-weight:700;color:var(--ink-soft);}
+  .balance-pill strong{font-size:1.15rem;font-weight:800;color:var(--teal-dark);}
+
+  .txn-table{
+    background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  }
+  .txn-table-row{
+    display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;
+    padding:16px 22px;border-top:1px solid var(--line);
+  }
+  .txn-table-row:first-child{border-top:0;}
+  .txn-table-row.is-head{
+    background:var(--bg-alt);font-size:.78rem;font-weight:800;color:var(--ink-soft);
+    text-transform:uppercase;letter-spacing:.04em;padding:13px 22px;
+  }
+
+  .txn-icon{
+    width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;
+  }
+  .txn-icon.is-credit{background:#E7F6EE;color:#146354;}
+  .txn-icon.is-debit{background:#FDECEC;color:#B3261E;}
+  .txn-icon svg{width:16px;height:16px;}
+
+  .txn-type{font-size:.92rem;font-weight:700;}
+  .txn-ref{font-size:.78rem;color:var(--ink-soft);margin-top:2px;}
+
+  .status-chip{
+    font-size:.76rem;font-weight:700;padding:5px 12px;border-radius:100px;white-space:nowrap;justify-self:start;
+  }
+  .status-completed{background:#E7F6EE;color:#146354;}
+  .status-pending{background:#FEF6E5;color:#7A5A16;}
+  .status-failed{background:#FDECEC;color:#B3261E;}
+
+  .txn-amount{font-size:.94rem;font-weight:800;white-space:nowrap;text-align:left;}
+  .txn-amount.is-credit{color:#146354;}
+  .txn-amount.is-debit{color:#B3261E;}
+  .txn-date-cell{font-size:.82rem;color:var(--ink-soft);white-space:nowrap;}
+
+  .empty-state{text-align:center;padding:60px 20px;background:var(--bg-alt);border-radius:16px;}
+  .empty-state h3{font-size:1.1rem;font-weight:800;}
+  .empty-state p{margin-top:8px;color:var(--ink-soft);}
+
+  .pagination{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:32px;flex-wrap:wrap;}
+  .page-link{
+    min-width:40px;height:40px;padding:0 10px;border:1px solid var(--line);border-radius:9px;
+    display:flex;align-items:center;justify-content:center;font-size:.88rem;font-weight:700;color:var(--ink);
+  }
+  .page-link:hover{border-color:var(--teal);color:var(--teal-dark);}
+  .page-link.is-current{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .page-link.is-disabled{opacity:.4;pointer-events:none;}
+
+  @media (max-width:720px){
+    .txn-table-row{grid-template-columns:1fr;gap:6px;}
+    .txn-table-row.is-head{display:none;}
+    .txn-amount{text-align:right;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <nav class="breadcrumb" aria-label="{% trans 'Breadcrumb' %}">
+    <a href="{% url 'home' %}">{% trans "Home" %}</a>
+    <span class="sep">/</span>
+    <a href="{% url 'accounts:wallet_detail' %}">{% trans "My Wallet" %}</a>
+    <span class="sep">/</span>
+    <span>{% trans "Transactions" %}</span>
+  </nav>
+</div>
+
+<section class="txns-page">
+  <div class="container">
+    <div class="txns-page-head">
+      <div>
+        <h2>{% trans "Wallet Transactions" %}</h2>
+        <p>{% trans "Full history of deposits, payments and refunds." %}</p>
+      </div>
+      <div class="balance-pill">
+        <span>{% trans "Current Balance" %}</span>
+        <strong>{{ wallet.balance }} {% trans "Toman" %}</strong>
+      </div>
+    </div>
+
+    {% if transactions %}
+      <div class="txn-table">
+        <div class="txn-table-row is-head">
+          <span></span>
+          <span>{% trans "Transaction" %}</span>
+          <span>{% trans "Status" %}</span>
+          <span>{% trans "Amount" %}</span>
+        </div>
+
+        {% for txn in transactions %}
+          <div class="txn-table-row">
+            <span class="txn-icon {% if txn.direction == 'CREDIT' %}is-credit{% else %}is-debit{% endif %}">
+              {% if txn.direction == 'CREDIT' %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+              {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              {% endif %}
+            </span>
+
+            <span>
+              <div class="txn-type">{{ txn.type }}</div>
+              <div class="txn-ref">
+                {{ txn.created_at|date:"D, d M Y - H:i" }}
+                {% if txn.external_reference %} &middot; {{ txn.external_reference }}{% endif %}
+              </div>
+            </span>
+
+            <span class="status-chip status-{{ txn.status|lower }}">{{ txn.status }}</span>
+
+            <span class="txn-amount {% if txn.direction == 'CREDIT' %}is-credit{% else %}is-debit{% endif %}">
+              {% if txn.direction == 'CREDIT' %}+{% else %}&minus;{% endif %}{{ txn.amount }} {% trans "Toman" %}
+            </span>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="pagination" aria-label="{% trans 'Pagination' %}">
+          {% if page_obj.has_previous %}
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+          {% else %}
+            <span class="page-link is-disabled">&laquo;</span>
+          {% endif %}
+
+          {% for num in page_obj.paginator.page_range %}
+            {% if num == page_obj.number %}
+              <span class="page-link is-current">{{ num }}</span>
+            {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+              <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            {% endif %}
+          {% endfor %}
+
+          {% if page_obj.has_next %}
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+          {% else %}
+            <span class="page-link is-disabled">&raquo;</span>
+          {% endif %}
+        </nav>
+      {% endif %}
+
+    {% else %}
+      <div class="empty-state">
+        <h3>{% trans "No transactions yet" %}</h3>
+        <p>{% trans "Once you top up or spend from your wallet, it will show up here." %}</p>
+        <div style="margin-top:20px;">
+          <a href="{% url 'accounts:wallet_detail' %}" class="btn btn-solid">{% trans "Go to Wallet" %}</a>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}

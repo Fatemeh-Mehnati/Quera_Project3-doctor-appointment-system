@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "My Appointments" %} | CareWell Clinic{% endblock %}
+{% block description %}{% trans "View and manage your booked appointments." %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- My appointments page ---------- */
+  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--ink-soft);padding:24px 0 0;}
+  .breadcrumb a:hover{color:var(--teal-dark);}
+  .breadcrumb .sep{opacity:.5;}
+
+  .appts-page{padding:24px 0 80px;}
+  .appts-page-head{margin-bottom:32px;}
+  .appts-page-head h2{font-size:clamp(1.5rem,1.2rem + 1vw,1.9rem);font-weight:800;}
+  .appts-page-head p{margin-top:10px;color:var(--ink-soft);}
+
+  .appt-list{display:flex;flex-direction:column;gap:16px;}
+  .appt-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:22px 26px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;
+  }
+  .appt-info{display:flex;align-items:center;gap:16px;}
+  .appt-avatar{
+    flex:none;width:52px;height:52px;border-radius:50%;background:var(--bg-alt);
+    color:var(--teal-dark);font-weight:800;font-size:.95rem;display:flex;align-items:center;justify-content:center;
+  }
+  .appt-doctor-name{font-size:1rem;font-weight:800;}
+  .appt-meta{display:flex;align-items:center;gap:14px;margin-top:4px;flex-wrap:wrap;}
+  .appt-meta span{display:flex;align-items:center;gap:5px;font-size:.83rem;color:var(--ink-soft);}
+  .appt-meta svg{width:14px;height:14px;}
+  .appt-price{font-size:.83rem;font-weight:700;color:var(--teal-dark);margin-top:4px;}
+
+  .appt-side{display:flex;align-items:center;gap:14px;flex:none;}
+  .status-badge{
+    font-size:.78rem;font-weight:700;padding:6px 14px;border-radius:100px;white-space:nowrap;
+  }
+  .status-reserved{background:#E7F6EE;color:#146354;}
+  .status-completed{background:var(--bg-alt);color:var(--teal-dark);}
+  .status-cancelled{background:#FDECEC;color:#B3261E;}
+  .status-patient_no_show{background:#FEF6E5;color:#7A5A16;}
+
+  .cancel-btn{
+    background:transparent;border:1px solid var(--line);color:var(--ink);
+    font-size:.83rem;font-weight:700;padding:9px 16px;border-radius:8px;transition:border-color .2s ease, color .2s ease;
+  }
+  .cancel-btn:hover{border-color:#B3261E;color:#B3261E;}
+
+  .empty-state{
+    text-align:center;padding:60px 20px;background:var(--bg-alt);border-radius:16px;
+  }
+  .empty-state h3{font-size:1.1rem;font-weight:800;}
+  .empty-state p{margin-top:8px;color:var(--ink-soft);}
+
+  @media (max-width:640px){
+    .appt-card{flex-direction:column;align-items:stretch;}
+    .appt-side{justify-content:space-between;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <nav class="breadcrumb" aria-label="{% trans 'Breadcrumb' %}">
+    <a href="{% url 'home' %}">{% trans "Home" %}</a>
+    <span class="sep">/</span>
+    <span>{% trans "My Appointments" %}</span>
+  </nav>
+</div>
+
+<section class="appts-page">
+  <div class="container">
+    <div class="appts-page-head">
+      <h2>{% trans "My Appointments" %}</h2>
+      <p>{% trans "Track your upcoming and past visits, or cancel a reservation before its time arrives." %}</p>
+    </div>
+
+    {% if appointments %}
+      <div class="appt-list">
+        {% for appointment in appointments %}
+          <div class="appt-card">
+            <div class="appt-info">
+              <div class="appt-avatar">
+                {{ appointment.visit_slot.doctor.user.first_name|first|upper }}{{ appointment.visit_slot.doctor.user.last_name|first|upper }}
+              </div>
+              <div>
+                <div class="appt-doctor-name">
+                  {% blocktrans with first=appointment.visit_slot.doctor.user.first_name last=appointment.visit_slot.doctor.user.last_name %}Dr. {{ first }} {{ last }}{% endblocktrans %}
+                </div>
+                <div class="appt-meta">
+                  <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
+                    {{ appointment.visit_slot.start_at|date:"D, d M Y" }}
+                  </span>
+                  <span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                    {{ appointment.visit_slot.start_at|date:"H:i" }}
+                  </span>
+                </div>
+                <div class="appt-price">{{ appointment.reserved_price }} {% trans "Toman" %}</div>
+              </div>
+            </div>
+
+            <div class="appt-side">
+              <span class="status-badge status-{{ appointment.status|lower }}">
+                {{ appointment.get_status_display }}
+              </span>
+
+              {% if appointment.status == "RESERVED" and appointment.visit_slot.start_at > now %}
+                <form method="post" action="{% url 'appointments:cancel' pk=appointment.pk %}"
+                      onsubmit="return confirm('{% trans "Are you sure you want to cancel this appointment?" %}');">
+                  {% csrf_token %}
+                  <button type="submit" class="cancel-btn">{% trans "Cancel" %}</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h3>{% trans "No appointments yet" %}</h3>
+        <p>{% trans "Once you book a visit, it will show up here." %}</p>
+        <div style="margin-top:20px;">
+          <a href="{% url 'doctors:doctor_list' %}" class="btn btn-solid">{% trans "Browse Doctors" %}</a>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}

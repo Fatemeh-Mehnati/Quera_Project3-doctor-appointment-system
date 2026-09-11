@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "My Wallet" %} | CareWell Clinic{% endblock %}
+{% block description %}{% trans "Check your wallet balance, top up and view recent transactions." %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- Wallet page ---------- */
+  .breadcrumb{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--ink-soft);padding:24px 0 0;}
+  .breadcrumb a:hover{color:var(--teal-dark);}
+  .breadcrumb .sep{opacity:.5;}
+
+  .wallet-page{padding:24px 0 80px;}
+  .wallet-grid{display:grid;grid-template-columns:1.1fr 1.4fr;gap:24px;align-items:start;}
+
+  /* balance card */
+  .balance-card{
+    background:linear-gradient(150deg, var(--teal-dark) 0%, var(--teal) 100%);
+    color:#fff;border-radius:18px;padding:30px;position:relative;overflow:hidden;
+  }
+  .balance-card::after{
+    content:"";position:absolute;top:-40px;right:-40px;width:160px;height:160px;
+    border-radius:50%;background:rgba(255,255,255,.08);
+  }
+  .balance-label{display:flex;align-items:center;gap:8px;font-size:.85rem;font-weight:700;opacity:.85;}
+  .balance-label svg{width:16px;height:16px;}
+  .balance-amount{font-size:2.4rem;font-weight:800;margin-top:10px;letter-spacing:-.02em;}
+  .balance-amount small{font-size:1rem;font-weight:600;opacity:.8;margin-right:6px;}
+  .balance-held{margin-top:14px;font-size:.82rem;opacity:.85;}
+
+  .charge-form{margin-top:26px;position:relative;z-index:1;}
+  .charge-form .field-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .charge-form input[type="number"],
+  .charge-form input[type="text"]{
+    flex:1;min-width:140px;padding:12px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.35);
+    background:rgba(255,255,255,.12);color:#fff;font-family:inherit;font-size:.95rem;outline:none;
+  }
+  .charge-form input::placeholder{color:rgba(255,255,255,.7);}
+  .charge-form input:focus{border-color:#fff;}
+  .charge-form .btn{
+    flex:none;background:var(--gold);color:#3A2A05;border:0;
+  }
+  .charge-form .btn:hover{background:#E0961A;}
+  .quick-amounts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .quick-amount{
+    font-size:.78rem;font-weight:700;padding:6px 12px;border-radius:100px;
+    border:1px solid rgba(255,255,255,.35);color:#fff;background:transparent;
+  }
+  .quick-amount:hover{background:rgba(255,255,255,.15);}
+
+  /* recent transactions */
+  .txn-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px;}
+  .txn-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .txn-card-head h3{font-size:1.02rem;font-weight:800;}
+  .txn-card-head a{font-size:.85rem;font-weight:700;color:var(--teal);}
+  .txn-card-head a:hover{color:var(--teal-dark);}
+
+  .txn-row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:13px 0;border-top:1px solid var(--line);
+  }
+  .txn-row:first-of-type{border-top:0;padding-top:0;}
+  .txn-left{display:flex;align-items:center;gap:12px;}
+  .txn-icon{
+    flex:none;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  }
+  .txn-icon.is-credit{background:#E7F6EE;color:#146354;}
+  .txn-icon.is-debit{background:#FDECEC;color:#B3261E;}
+  .txn-icon svg{width:17px;height:17px;}
+  .txn-type{font-size:.9rem;font-weight:700;}
+  .txn-date{font-size:.78rem;color:var(--ink-soft);margin-top:2px;}
+  .txn-amount{font-size:.95rem;font-weight:800;white-space:nowrap;}
+  .txn-amount.is-credit{color:#146354;}
+  .txn-amount.is-debit{color:#B3261E;}
+
+  .empty-txn{padding:30px 0;text-align:center;color:var(--ink-soft);font-size:.88rem;}
+
+  @media (max-width:900px){
+    .wallet-grid{grid-template-columns:1fr;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <nav class="breadcrumb" aria-label="{% trans 'Breadcrumb' %}">
+    <a href="{% url 'home' %}">{% trans "Home" %}</a>
+    <span class="sep">/</span>
+    <span>{% trans "My Wallet" %}</span>
+  </nav>
+</div>
+
+<section class="wallet-page">
+  <div class="container">
+    <div class="wallet-grid">
+
+      <!-- Balance + charge -->
+      <div>
+        <div class="balance-card">
+          <div class="balance-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><circle cx="17" cy="15" r="1.4" fill="currentColor" stroke="none"/></svg>
+            {% trans "Wallet Balance" %}
+          </div>
+          <div class="balance-amount">{{ wallet.balance }} <small>{% trans "Toman" %}</small></div>
+          {% if wallet.held_balance %}
+            <div class="balance-held">{% trans "Held balance" %}: {{ wallet.held_balance }} {% trans "Toman" %}</div>
+          {% endif %}
+
+          <form method="post" action="{% url 'accounts:wallet_charge' %}" class="charge-form">
+            {% csrf_token %}
+            <div class="field-row">
+              {{ form.amount }}
+              <button type="submit" class="btn btn-solid">{% trans "Top Up" %}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Recent transactions -->
+      <div class="txn-card">
+        <div class="txn-card-head">
+          <h3>{% trans "Recent Transactions" %}</h3>
+          <a href="{% url 'accounts:wallet_transactions' %}">{% trans "View All" %}</a>
+        </div>
+
+        {% if transactions %}
+          {% for txn in transactions %}
+            <div class="txn-row">
+              <div class="txn-left">
+                <span class="txn-icon {% if txn.direction == 'CREDIT' %}is-credit{% else %}is-debit{% endif %}">
+                  {% if txn.direction == 'CREDIT' %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                  {% else %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                  {% endif %}
+                </span>
+                <div>
+                  <div class="txn-type">{{ txn.type }}</div>
+                  <div class="txn-date">{{ txn.created_at|date:"D, d M Y - H:i" }}</div>
+                </div>
+              </div>
+              <div class="txn-amount {% if txn.direction == 'CREDIT' %}is-credit{% else %}is-debit{% endif %}">
+                {% if txn.direction == 'CREDIT' %}+{% else %}&minus;{% endif %}{{ txn.amount }} {% trans "Toman" %}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-txn">{% trans "No transactions yet." %}</div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</section>
+
+{% endblock %}

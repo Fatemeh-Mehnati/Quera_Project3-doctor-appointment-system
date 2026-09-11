@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Dashboard" %} | CareWell Clinic{% endblock %}
+{% block description %}{% trans "Your CareWell Clinic dashboard." %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ---------- Dashboard ---------- */
+  .dash-page{padding:40px 0 80px;}
+  .dash-welcome{margin-bottom:32px;}
+  .dash-welcome h2{font-size:clamp(1.5rem,1.2rem + 1vw,1.9rem);font-weight:800;}
+  .dash-welcome p{margin-top:8px;color:var(--ink-soft);}
+
+  .dash-grid{display:grid;grid-template-columns:1.1fr 1.4fr;gap:24px;align-items:start;}
+
+  .balance-card{
+    background:linear-gradient(150deg, var(--teal-dark) 0%, var(--teal) 100%);
+    color:#fff;border-radius:18px;padding:30px;position:relative;overflow:hidden;
+  }
+  .balance-card::after{
+    content:"";position:absolute;top:-40px;right:-40px;width:160px;height:160px;
+    border-radius:50%;background:rgba(255,255,255,.08);
+  }
+  .balance-label{display:flex;align-items:center;gap:8px;font-size:.85rem;font-weight:700;opacity:.85;}
+  .balance-label svg{width:16px;height:16px;}
+  .balance-amount{font-size:2.2rem;font-weight:800;margin-top:10px;letter-spacing:-.02em;}
+  .balance-amount small{font-size:1rem;font-weight:600;opacity:.8;margin-right:6px;}
+  .balance-card .btn{margin-top:22px;background:var(--gold);color:#3A2A05;border:0;width:100%;justify-content:center;}
+  .balance-card .btn:hover{background:#E0961A;}
+
+  .quick-links{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;}
+  .quick-link{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;
+    display:flex;flex-direction:column;gap:10px;transition:border-color .2s ease;
+  }
+  .quick-link:hover{border-color:var(--teal);}
+  .ql-icon{
+    width:38px;height:38px;border-radius:10px;background:var(--bg-alt);color:var(--teal);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .quick-link strong{font-size:.92rem;font-weight:800;}
+  .quick-link span{font-size:.8rem;color:var(--ink-soft);}
+
+  .txn-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px;}
+  .txn-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .txn-card-head h3{font-size:1.02rem;font-weight:800;}
+  .txn-card-head a{font-size:.85rem;font-weight:700;color:var(--teal);}
+  .txn-card-head a:hover{color:var(--teal-dark);}
+  .txn-row{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:13px 0;border-top:1px solid var(--line);
+  }
+  .txn-row:first-of-type{border-top:0;padding-top:0;}
+  .txn-left{display:flex;align-items:center;gap:12px;}
+  .txn-icon{
+    flex:none;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  }
+  .txn-icon.is-credit{background:#E7F6EE;color:#146354;}
+  .txn-icon.is-debit{background:#FDECEC;color:#B3261E;}
+  .txn-icon svg{width:17px;height:17px;}
+  .txn-type{font-size:.9rem;font-weight:700;}
+  .txn-date{font-size:.78rem;color:var(--ink-soft);margin-top:2px;}
+  .txn-amount{font-size:.95rem;font-weight:800;white-space:nowrap;}
+  .txn-amount.is-credit{color:#146354;}
+  .txn-amount.is-debit{color:#B3261E;}
+  .empty-txn{padding:30px 0;text-align:center;color:var(--ink-soft);font-size:.88rem;}
+
+  @media (max-width:900px){
+    .dash-grid{grid-template-columns:1fr;}
+    .quick-links{grid-template-columns:1fr;}
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<section class="dash-page">
+  <div class="container">
+    <div class="dash-welcome">
+      <h2>{% blocktrans with first=request.user.first_name %}Welcome back, {{ first }}{% endblocktrans %}</h2>
+      <p>{% trans "Here's a quick look at your wallet and account." %}</p>
+    </div>
+
+    <div class="dash-grid">
+      <div>
+        <div class="balance-card">
+          <div class="balance-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><circle cx="17" cy="15" r="1.4" fill="currentColor" stroke="none"/></svg>
+            {% trans "Wallet Balance" %}
+          </div>
+          <div class="balance-amount">{{ wallet.balance }} <small>{% trans "Toman" %}</small></div>
+          <a href="{% url 'accounts:wallet_detail' %}" class="btn">{% trans "Go to Wallet" %}</a>
+        </div>
+
+        <div class="quick-links">
+          <a href="{% url 'doctors:doctor_list' %}" class="quick-link">
+            <span class="ql-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </span>
+            <strong>{% trans "Find a Doctor" %}</strong>
+            <span>{% trans "Browse specialists and book a visit" %}</span>
+          </a>
+          <a href="{% url 'appointments:my_appointments' %}" class="quick-link">
+            <span class="ql-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
+            </span>
+            <strong>{% trans "My Appointments" %}</strong>
+            <span>{% trans "View or cancel your bookings" %}</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="txn-card">
+        <div class="txn-card-head">
+          <h3>{% trans "Recent Wallet Activity" %}</h3>
+          <a href="{% url 'accounts:wallet_transactions' %}">{% trans "View All" %}</a>
+        </div>
+
+        {% if transactions %}
+          {% for txn in transactions %}
+            <div class="txn-row">
+              <div class="txn-left">
+                <span class="txn-icon {% if txn.direction == 'CREDIT' %}is-credit{% else %}is-debit{% endif %}">
+                  {% if txn.direction == 'CREDIT' %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                  {% else %}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                  {% endif %}
+                </span>
+                <div>
+                  <div class="txn-type">{{ txn.type }}</div>
+                  <div class="txn-date">{{ txn.created_at|date:"D, d M Y - H:i" }}</div>
+                </div>
+              </div>
+              <div class="txn-amount {% if txn.direction == 'CREDIT' %}is-credit{% else %}is-debit{% endif %}">
+                {% if txn.direction == 'CREDIT' %}+{% else %}&minus;{% endif %}{{ txn.amount }} {% trans "Toman" %}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-txn">{% trans "No wallet activity yet." %}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
