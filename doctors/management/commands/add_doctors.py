@@ -5,25 +5,17 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from faker import Faker
 
-from doctors.models import Doctor
+from doctors.models import Doctor, Specialty, DoctorSpecialty
 from accounts.models import Role, UserRole
-from appointments.models import TimeSlot
+# ✅ ایمپورت مدل‌های تصحیح‌شده
+from appointments.models import TimeSlot, SlotPriceHistory
 
 User = get_user_model()
 
 SPECIALTIES = [
-    'Cardiology',
-    'Dermatology',
-    'Neurology',
-    'Pediatrics',
-    'Orthopedics',
-    'Psychiatry',
-    'General Practice',
-    'Ophthalmology',
-    'Gynecology',
-    'Oncology',
-    'Urology',
-    'Radiology',
+    'Cardiology', 'Dermatology', 'Neurology', 'Pediatrics',
+    'Orthopedics', 'Psychiatry', 'General Practice', 'Ophthalmology',
+    'Gynecology', 'Oncology', 'Urology', 'Radiology',
 ]
 
 
@@ -48,16 +40,17 @@ class Command(BaseCommand):
             attempts += 1
 
             phone = fake.unique.msisdn()
-            license_num = f"MC-{fake.unique.random_number(digits=6, fix_len=True)}"
+            email = fake.unique.email()
             first_name = fake.first_name()
             last_name = fake.last_name()
 
-            if User.objects.filter(phone_number=phone).exists():
+            if User.objects.filter(phone=phone).exists() or User.objects.filter(email=email).exists():
                 continue
 
             # ایجاد کاربر
             user = User.objects.create_user(
-                phone_number=phone,
+                email=email,
+                phone=phone,
                 first_name=first_name,
                 last_name=last_name,
                 password='Password123!'
@@ -65,49 +58,51 @@ class Command(BaseCommand):
 
             UserRole.objects.get_or_create(user=user, role=doctor_role)
 
-            specialty = fake.random_element(elements=SPECIALTIES)
-            bio = f"Dr. {first_name} {last_name} is a specialist in {specialty} with extensive medical practice."
-
-            # ایجاد پزشک
             doctor = Doctor.objects.create(
                 user=user,
-                medical_license_number=license_num,
-                specialty=specialty,
-                bio=bio,
-                verification_status='APPROVED'
+                verification_status='APPROVED',
             )
+
+            specialty_name = random.choice(SPECIALTIES)
+            specialty, _ = Specialty.objects.get_or_create(name=specialty_name)
+            DoctorSpecialty.objects.get_or_create(doctor=doctor, specialty=specialty)
 
             created_count += 1
 
-            # تولید اسلات‌های زمانی و قیمت برای ۱۴ روز آینده
             now = timezone.now()
-            for day_offset in range(1, 15):  # از فردا تا ۱۴ روز بعد
+            for day_offset in range(1, 15):
                 target_date = (now + timedelta(days=day_offset)).date()
-
-                # تعیین هزینه ویزیت تصادفی برای پزشک (بین ۵۰,۰۰۰ تا ۲۰۰,۰۰۰ تومان/واحد)
                 price = random.choice([50000, 75000, 100000, 120000, 150000, 200000])
 
-                # ساعات کاری تصادفی (مثلاً ۳ اسلات در روزهای کاری)
                 start_hours = [9, 11, 14, 16]
                 selected_hours = random.sample(start_hours, k=random.randint(2, 4))
 
                 for hour in selected_hours:
                     start_dt = timezone.make_aware(
-                        datetime.combine(target_date, datetime.min.time().replace(hour=hour, minute=0))
+                        datetime.combine(
+                            target_date,
+                            datetime.min.time().replace(hour=hour, minute=0)
+                        )
                     )
                     end_dt = start_dt + timedelta(minutes=30)
 
-                    TimeSlot.objects.create(
+                    # ✅ اصلاح ساختار TimeSlot
+                    time_slot = TimeSlot.objects.create(
                         doctor=doctor,
-                        start_time=start_dt,
-                        end_time=end_dt,
-                        price=price,
-                        is_booked=False
+                        start_at=start_dt,
+                        end_at=end_dt,
                     )
                     total_slots_created += 1
 
+                    # ✅ ایجاد سابقه قیمت برای اسلات مربوطه
+                    SlotPriceHistory.objects.create(
+                        time_slot=time_slot,
+                        amount=price,
+                        created_by_user=user,
+                    )
+
         self.stdout.write(
             self.style.SUCCESS(
-                f' {created_count}: {total_slots_created} .'
+                f'{created_count} doctor(s) and {total_slots_created} slot(s) created successfully.'
             )
         )
