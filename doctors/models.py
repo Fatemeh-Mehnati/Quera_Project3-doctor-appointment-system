@@ -76,3 +76,41 @@ class DoctorSpecialty(models.Model):
 
     def __str__(self):
         return f"{self.doctor} - {self.specialty}"
+
+
+class Review(models.Model):
+    doctor = models.ForeignKey(
+        Doctor,
+        on_delete=models.CASCADE,
+        related_name="reviews",
+    )
+    patient_user = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.CASCADE,
+        related_name="doctor_reviews",
+    )
+    rating = models.PositiveSmallIntegerField()
+    comment = models.TextField(
+        blank=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            # هر کاربر فقط یک نظر برای هر پزشک می‌تواند ثبت کند؛ ثبت دوباره
+            # همان نظر قبلی را به‌روزرسانی می‌کند (نگاه کنید به
+            # submit_review در views.py که از update_or_create استفاده می‌کند).
+            models.UniqueConstraint(
+                fields=["doctor", "patient_user"],
+                name="unique_review_per_patient_per_doctor",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(rating__gte=1, rating__lte=5),
+                name="review_rating_between_1_and_5",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.patient_user.email} -> {self.doctor} ({self.rating}★)"

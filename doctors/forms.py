@@ -41,5 +41,16 @@ class DoctorSearchForm(forms.Form):
 
 
 class DoctorReviewForm(forms.Form):
-    rating = forms.IntegerField(min_value=1, max_value=5)
-    comment = forms.CharField(widget=forms.Textarea, required=False)
+    rating = forms.IntegerField(
+        min_value=1,
+        max_value=5,
+        label="امتیاز",
+        widget=forms.RadioSelect(choices=[(i, i) for i in range(1, 6)]),
+    )
+    comment = forms.CharField(
+        widget=forms.Textarea(
+            attrs={"rows": 4, "placeholder": "تجربه‌ی خود را از این ویزیت بنویسید (اختیاری)"}
+        ),
+        required=False,
+        label="نظر شما",
+    )

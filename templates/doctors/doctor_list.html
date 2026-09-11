@@ -59,6 +59,12 @@
   }
   .doctor-card .btn{margin-top:auto;width:100%;}
 
+  .doctor-rating{display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:var(--ink);}
+  .doctor-rating .stars{display:inline-flex;gap:1px;color:var(--gold);font-size:.85rem;}
+  .doctor-rating .stars .star-empty{color:var(--line);}
+  .doctor-rating .rating-count{font-weight:500;color:var(--ink-soft);}
+  .doctor-no-rating{font-size:.78rem;color:var(--ink-soft);}
+
   .empty-state{
     text-align:center;padding:60px 20px;background:var(--bg-alt);border-radius:16px;
   }
@@ -160,6 +166,19 @@
                 </div>
               {% endif %}
             {% endwith %}
+
+            {% if doctor.avg_rating %}
+              <div class="doctor-rating">
+                <span class="stars">
+                  {% for i in "12345" %}
+                    {% if forloop.counter <= doctor.avg_rating|floatformat:0|add:0 %}★{% else %}<span class="star-empty">★</span>{% endif %}
+                  {% endfor %}
+                </span>
+                {{ doctor.avg_rating|floatformat:1 }}
+              </div>
+            {% else %}
+              <div class="doctor-no-rating">{% trans "No ratings yet" %}</div>
+            {% endif %}
 
             <a href="{% url 'doctors:doctor_detail' pk=doctor.pk %}" class="btn btn-ghost">
               {% trans "View Profile" %}
