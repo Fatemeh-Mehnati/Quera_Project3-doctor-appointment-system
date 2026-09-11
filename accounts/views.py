@@ -98,6 +98,9 @@ def otp_verify_view(request):
                 else:
                     auth_login(request, user)
 
+                    print("AFTER LOGIN:", request.user.is_authenticated, request.user.email)
+                    print("SESSION:", dict(request.session))
+
                     request.session.pop("otp_email", None)
                     request.session.pop("otp_code", None)
                     request.session.pop("otp_created_at", None)
