@@ -31,7 +31,14 @@ class LoginForm(forms.Form):
 
 
 class OTPRequestForm(forms.Form):
-    email = forms.EmailField()
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "class": "w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500",
+                "placeholder": "your@email.com",
+            }
+        )
+    )
 
 class OTPVerifyForm(forms.Form):
     email = forms.EmailField()
