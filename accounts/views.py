@@ -3,9 +3,12 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
+from django.conf import settings
+from django.core.mail import send_mail
+from django.utils import timezone
+import random
 
-
-from .forms import LoginForm, UserRegistrationForm, WalletChargeForm
+from .forms import LoginForm, OTPRequestForm, OTPVerifyForm, UserRegistrationForm, WalletChargeForm
 from .models import Wallet
 
 TRANSACTIONS_PER_PAGE = 20
@@ -28,6 +31,39 @@ def signup_view(request):
 
     return render(request, "accounts/signup.html", {"form": form})
 
+def otp_request_view(request):
+    if request.user.is_authenticated:
+        return redirect("accounts:dashboard")
+
+    if request.method == "POST":
+        form = OTPRequestForm(request.POST)
+
+        if form.is_valid():
+            email = form.cleaned_data["email"]
+
+            otp = str(random.randint(100000, 999999))
+
+            request.session["otp_email"] = email
+            request.session["otp_code"] = otp
+            request.session["otp_created_at"] = timezone.now().timestamp()
+
+            send_mail(
+                subject="کد ورود",
+                message=f"کد ورود شما: {otp}",
+                from_email=None,
+                recipient_list=[email],
+            )
+
+            return redirect("accounts:otp_verify")
+
+    else:
+        form = OTPRequestForm()
+
+    return render(
+        request,
+        "accounts/otp_request.html",
+        {"form": form},
+    )
 
 def login_view(request):
     if request.user.is_authenticated:
