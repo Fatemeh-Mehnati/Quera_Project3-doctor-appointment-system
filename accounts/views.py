@@ -1,24 +1,82 @@
 from django.contrib import messages
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
 
-from .forms import WalletChargeForm
+from .forms import LoginForm, UserRegistrationForm, WalletChargeForm
 from .models import Wallet
 
 TRANSACTIONS_PER_PAGE = 20
 
 
-# Create your views here.
 def signup_view(request):
-    return None
+
+    if request.user.is_authenticated:
+        return redirect("accounts:dashboard")
+
+    if request.method == "POST":
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            auth_login(request, user)
+            messages.success(request, "ثبت‌نام شما با موفقیت انجام شد. خوش آمدید!")
+            return redirect("accounts:dashboard")
+    else:
+        form = UserRegistrationForm()
+
+    return render(request, "accounts/signup.html", {"form": form})
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect("accounts:dashboard")
+
+    next_url = request.GET.get("next") or request.POST.get("next")
+
+    if request.method == "POST":
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data["email"]
+            password = form.cleaned_data["password"]
+            user = authenticate(request, username=email, password=password)
+            if user is not None:
+                auth_login(request, user)
+                return redirect(next_url or "accounts:dashboard")
+            form.add_error(None, "ایمیل یا رمز عبور اشتباه است.")
+    else:
+        form = LoginForm()
+
+    return render(request, "accounts/login.html", {"form": form, "next": next_url})
+
+
+def logout_view(request):
+    auth_logout(request)
+    messages.info(request, "شما از حساب کاربری خود خارج شدید.")
+    return redirect("home")
+
+
+@login_required
+def dashboard(request):
+    """
+    داشبورد کاربر بعد از ورود/ثبت‌نام: خلاصه کیف پول و لینک‌های میان‌بر.
+    """
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    recent_transactions = wallet.transactions.order_by("-created_at")[:5]
+
+    return render(
+        request,
+        "accounts/dashboard.html",
+        {
+            "wallet": wallet,
+            "transactions": recent_transactions,
+        },
+    )
 
 
 @login_required
 def wallet_detail(request):
-    """
-    صفحه اصلی کیف پول: موجودی فعلی، فرم شارژ و ۱۰ تراکنش آخر.
-    """
+
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
     form = WalletChargeForm()
     recent_transactions = wallet.transactions.order_by("-created_at")[:10]

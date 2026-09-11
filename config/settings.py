@@ -46,6 +46,11 @@ INSTALLED_APPS = [
 
 AUTH_USER_MODEL = "accounts.User"
 
+# مسیری که login_required (و ویوی سفارشی لاگین) بعد از نیاز به احراز
+# هویت یا ورود موفق کاربر را به آن هدایت می‌کند.
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "accounts:dashboard"
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
