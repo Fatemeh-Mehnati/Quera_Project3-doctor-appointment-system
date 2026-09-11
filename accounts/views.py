@@ -7,9 +7,11 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
 import random
+from django.contrib.auth import get_user_model
 
 from .forms import LoginForm, OTPRequestForm, OTPVerifyForm, UserRegistrationForm, WalletChargeForm
 from .models import Wallet
+User = get_user_model()
 
 TRANSACTIONS_PER_PAGE = 20
 
@@ -62,6 +64,56 @@ def otp_request_view(request):
     return render(
         request,
         "accounts/otp_request.html",
+        {"form": form},
+    )
+
+def otp_verify_view(request):
+    if request.user.is_authenticated:
+        return redirect("accounts:dashboard")
+
+    if request.method == "POST":
+        form = OTPVerifyForm(request.POST)
+
+        if form.is_valid():
+            email = form.cleaned_data["email"]
+            code = form.cleaned_data["code"]
+
+            otp_email = request.session.get("otp_email")
+            otp_code = request.session.get("otp_code")
+            otp_created_at = request.session.get("otp_created_at")
+
+            if not otp_email or not otp_code or not otp_created_at:
+                form.add_error(None, "کد ورود معتبر نیست یا منقضی شده است.")
+            elif email != otp_email:
+                form.add_error("email", "ایمیل با ایمیل درخواست کد مطابقت ندارد.")
+            elif timezone.now().timestamp() - otp_created_at > settings.OTP_EXPIRY_SECONDS:
+                form.add_error(None, "کد ورود منقضی شده است.")
+            elif code != otp_code:
+                form.add_error("code", "کد ورود اشتباه است.")
+            else:
+                user = User.objects.filter(email=email).first()
+
+                if user is None:
+                    form.add_error(None, "اطلاعات ورود معتبر نیست.")
+                else:
+                    auth_login(request, user)
+
+                    request.session.pop("otp_email", None)
+                    request.session.pop("otp_code", None)
+                    request.session.pop("otp_created_at", None)
+
+                    return redirect("accounts:dashboard")
+
+    else:
+        form = OTPVerifyForm(
+            initial={
+                "email": request.session.get("otp_email", "")
+            }
+        )
+
+    return render(
+        request,
+        "accounts/otp_verify.html",
         {"form": form},
     )
 
