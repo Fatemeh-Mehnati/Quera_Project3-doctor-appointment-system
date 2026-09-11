@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.shortcuts import redirect, render
 
+
 from .forms import LoginForm, UserRegistrationForm, WalletChargeForm
 from .models import Wallet
 
@@ -143,3 +144,31 @@ def wallet_transactions(request):
             "transactions": page.object_list,
         },
     )
+
+
+def home(request):
+    """
+    صفحه اصلی سایت.
+
+    برای کاربر لاگین‌کرده خلاصه‌ای از نوبت‌های آینده و لینک‌های سریع
+    نشان می‌دهد. برای کاربر ناشناس یک صفحه معرفی ساده با دکمه ورود
+    و ثبت‌نام است.
+    """
+    context = {}
+
+    if request.user.is_authenticated:
+        from appointments.models import Appointment
+        from django.utils import timezone
+
+        upcoming = (
+            Appointment.objects.filter(
+                patient_user=request.user,
+                status=Appointment.Status.RESERVED,
+                visit_slot__start_at__gt=timezone.now(),
+            )
+            .select_related("visit_slot__doctor__user")
+            .order_by("visit_slot__start_at")[:3]
+        )
+        context["upcoming_appointments"] = upcoming
+
+    return render(request, "home.html", context)

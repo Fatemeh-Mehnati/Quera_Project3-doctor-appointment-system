@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  {% if user.is_authenticated %}
+    <h1>خوش آمدید، {{ user.first_name }}</h1>
+
+    <p><a href="{% url 'appointments:my_appointments' %}">نوبت‌های من</a></p>
+    <p><a href="{% url 'accounts:wallet_detail' %}">کیف پول</a></p>
+    <p><a href="{% url 'doctors:doctor_list' %}">جستجوی پزشک</a></p>
+
+    {% if upcoming_appointments %}
+      <h2>نوبت‌های آینده</h2>
+      <ul>
+        {% for appt in upcoming_appointments %}
+          <li>
+            دکتر {{ appt.visit_slot.doctor.user.get_full_name }} —
+            {{ appt.visit_slot.start_at }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% else %}
+    <h1>سیستم نوبت‌دهی آنلاین پزشکان</h1>
+    <p>رزرو نوبت ویزیت به سادگی و در چند دقیقه.</p>
+
+    <p><a href="{% url 'login' %}">ورود</a> | <a href="{% url 'signup' %}">ثبت‌نام</a></p>
+    <p><a href="{% url 'doctors:doctor_list' %}">مشاهده لیست پزشکان</a></p>
+  {% endif %}
+</div>
+{% endblock %}
