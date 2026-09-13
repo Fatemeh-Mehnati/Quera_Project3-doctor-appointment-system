@@ -17,16 +17,20 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import TemplateView
+
 from accounts import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("i18n/", include("django.conf.urls.i18n")),
-    path('', views.home, name='home'),
+    path('', TemplateView.as_view(template_name='base.html'), name='home'),
     path('doctors/', include('doctors.urls')),
     path('appointments/', include('appointments.urls')),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('signup/', views.signup_view, name='signup'),
+
+    path('accounts/social/', include('allauth.urls')),
     path('accounts/', include('accounts.urls')),
 ]
