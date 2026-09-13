@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Continue with Google" %} | CareWell Clinic{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-section{padding:56px 0 100px;display:flex;justify-content:center;}
+  .auth-card{
+    width:100%;max-width:440px;background:var(--surface);border:1px solid var(--line);
+    border-radius:18px;padding:38px 36px;text-align:center;
+  }
+  .auth-card svg{width:44px;height:44px;margin-bottom:18px;}
+  .auth-head h2{font-size:1.4rem;font-weight:800;}
+  .auth-head p{margin-top:10px;color:var(--ink-soft);font-size:.9rem;line-height:1.5;}
+  .auth-submit{margin-top:26px;width:100%;justify-content:center;}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="auth-section">
+  <div class="auth-card">
+    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.4-.4-3.5z"/>
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.9 19 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3c-7.4 0-13.8 4.2-17.1 10.3z"/>
+      <path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.2-5.1l-6.6-5.4C29.6 36.2 26.9 37 24 37c-5.3 0-9.7-3.4-11.3-8.1l-6.6 5.1C9.1 40.8 16 45 24 45z"/>
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.6 5.4C41.7 35.9 45 30.5 45 24c0-1.4-.1-2.4-.4-3.5z"/>
+    </svg>
+
+    <div class="auth-head">
+      {% if process == "connect" %}
+        <h2>{% blocktrans with provider.name as provider %}Connect {{ provider }}{% endblocktrans %}</h2>
+        <p>{% blocktrans with provider.name as provider %}You are about to connect a new third-party account from {{ provider }}.{% endblocktrans %}</p>
+      {% else %}
+        <h2>{% blocktrans with provider.name as provider %}Sign In Via {{ provider }}{% endblocktrans %}</h2>
+        <p>{% blocktrans with provider.name as provider %}You are about to sign in using a third-party account from {{ provider }}.{% endblocktrans %}</p>
+      {% endif %}
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-solid auth-submit">{% trans "Continue" %}</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
