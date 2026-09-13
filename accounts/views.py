@@ -25,7 +25,7 @@ def signup_view(request):
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            auth_login(request, user)
+            auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, "ثبت‌نام شما با موفقیت انجام شد. خوش آمدید!")
             return redirect("accounts:dashboard")
     else:
@@ -96,10 +96,7 @@ def otp_verify_view(request):
                 if user is None:
                     form.add_error(None, "اطلاعات ورود معتبر نیست.")
                 else:
-                    auth_login(request, user)
-
-                    print("AFTER LOGIN:", request.user.is_authenticated, request.user.email)
-                    print("SESSION:", dict(request.session))
+                    auth_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
                     request.session.pop("otp_email", None)
                     request.session.pop("otp_code", None)
