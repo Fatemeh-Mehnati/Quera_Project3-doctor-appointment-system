@@ -92,14 +92,15 @@ class Appointment(models.Model):
         PATIENT_NO_SHOW = "PATIENT_NO_SHOW", "Patient No Show"
 
     patient_user = models.ForeignKey(
-        'accounts.User',
+        "accounts.User",
         on_delete=models.CASCADE,
-        related_name='appointments',
+        related_name="appointments",
     )
-    visit_slot = models.OneToOneField(
+
+    visit_slot = models.ForeignKey(
         TimeSlot,
         on_delete=models.PROTECT,
-        related_name="appointment",
+        related_name="appointments",
     )
 
     reserved_price = models.DecimalField(
@@ -114,36 +115,39 @@ class Appointment(models.Model):
     )
 
     cancelled_by_user = models.ForeignKey(
-        'accounts.User',
+        "accounts.User",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='cancelled_appointments',
+        related_name="cancelled_appointments",
     )
+
     cancelled_at = models.DateTimeField(
         null=True,
         blank=True,
     )
 
     completed_by_user = models.ForeignKey(
-        'accounts.User',
+        "accounts.User",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='completed_appointments',
+        related_name="completed_appointments",
     )
+
     completed_at = models.DateTimeField(
         null=True,
         blank=True,
     )
 
     no_show_marked_by_user = models.ForeignKey(
-        'accounts.User',
+        "accounts.User",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='no_show_appointments',
+        related_name="no_show_appointments",
     )
+
     no_show_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -155,8 +159,14 @@ class Appointment(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(reserved_price__gt=0),
+                condition=Q(reserved_price__gt=0),
                 name="appointment_reserved_price_positive",
+            ),
+
+            models.UniqueConstraint(
+                fields=["visit_slot"],
+                condition=Q(status="RESERVED"),
+                name="one_active_reservation_per_slot",
             ),
         ]
 

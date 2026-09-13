@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -30,8 +31,10 @@ def available_slots(request, doctor_id):
         TimeSlot.objects.filter(
             doctor_id=doctor_id,
             is_active=True,
-            appointment__isnull=True,
             start_at__gt=timezone.now(),
+        )
+        .exclude(
+            appointments__status=Appointment.Status.RESERVED
         )
         .select_related("doctor__user")
         .prefetch_related("price_history")
@@ -74,7 +77,10 @@ def reserve_appointment(request, slot_id):
         messages.error(request, "زمان این بازه گذشته است.")
         return doctor_url
 
-    if hasattr(slot, "appointment"):
+    if Appointment.objects.filter(
+        visit_slot=slot,
+        status=Appointment.Status.RESERVED,
+    ).exists():
         messages.error(request, "این بازه قبلاً رزرو شده است.")
         return doctor_url
 

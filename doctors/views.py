@@ -18,16 +18,6 @@ DOCTORS_PER_PAGE = 12
 def _approved_doctors():
     """
     کوئری پایه پزشکان تاییدشده.
-
-    select_related روی user می‌زنیم چون نام پزشک از مدل کاربر می‌آید و
-    بدون آن برای هر پزشک یک کوئری جداگانه اجرا می‌شود.
-    prefetch_related تخصص‌ها را در یک کوئری اضافه می‌آورد.
-
-    میانگین امتیاز با یک Subquery (نه annotate مستقیم روی reviews)
-    محاسبه می‌شود؛ چون doctor_specialties هم در فیلترهای جستجو join
-    می‌خورد، annotate مستقیم Avg روی reviews باعث fan-out و محاسبه
-    اشتباه میانگین می‌شد. Subquery این مشکل را ندارد چون مستقل از
-    join‌های دیگر روی کوئری اصلی اجرا می‌شود.
     """
     avg_rating_subquery = (
         Review.objects.filter(doctor=OuterRef("pk"))
@@ -37,7 +27,9 @@ def _approved_doctors():
     )
 
     return (
-        Doctor.objects.filter(verification_status=Doctor.VerificationStatus.APPROVED)
+        Doctor.objects.filter(
+            verification_status=Doctor.VerificationStatus.APPROVED
+        )
         .select_related("user")
         .prefetch_related("doctor_specialties__specialty")
         .annotate(avg_rating=Subquery(avg_rating_subquery))
@@ -47,9 +39,6 @@ def _approved_doctors():
 def doctor_list(request):
     """
     لیست پزشکان همراه با جستجو، فیلتر تخصص و صفحه‌بندی.
-
-    جستجو روی نام و نام خانوادگی پزشک و همچنین نام تخصص انجام می‌شود.
-    جستجوی خالی همه پزشکان را برمی‌گرداند.
     """
     form = DoctorSearchForm(request.GET or None)
     doctors = _approved_doctors()
@@ -66,15 +55,18 @@ def doctor_list(request):
             )
 
         if specialty:
-            doctors = doctors.filter(doctor_specialties__specialty=specialty)
+            doctors = doctors.filter(
+                doctor_specialties__specialty=specialty
+            )
 
-    # فیلتر روی رابطه چندبه‌چند می‌تواند یک پزشک را چند بار برگرداند
-    doctors = doctors.distinct().order_by("user__last_name", "user__first_name")
+    doctors = doctors.distinct().order_by(
+        "user__last_name",
+        "user__first_name",
+    )
 
     paginator = Paginator(doctors, DOCTORS_PER_PAGE)
     page = paginator.get_page(request.GET.get("page"))
 
-    # برای حفظ پارامترهای جستجو هنگام رفتن به صفحه بعد
     params = request.GET.copy()
     params.pop("page", None)
 
@@ -93,16 +85,25 @@ def doctor_list(request):
 
 def doctor_detail(request, pk):
     """
-    صفحه جزئیات یک پزشک به همراه بازه‌های زمانی قابل رزرو.
+    صفحه جزئیات پزشک به همراه بازه‌های زمانی قابل رزرو.
 
-    بازه قابل رزرو یعنی: فعال باشد، هنوز نوبتی به آن وصل نشده باشد،
-    و زمان شروعش در آینده باشد.
+    یک TimeSlot زمانی قابل رزرو است اگر:
+    - فعال باشد
+    - زمان آن در آینده باشد
+    - Appointment با وضعیت RESERVED نداشته باشد
+
+    بنابراین اگر Appointment قبلی CANCELLED شده باشد،
+    TimeSlot دوباره قابل رزرو خواهد بود.
     """
+
     available_slots = (
         TimeSlot.objects.filter(
+            doctor_id=pk,
             is_active=True,
-            appointment__isnull=True,
             start_at__gt=timezone.now(),
+        )
+        .exclude(
+            appointments__status=Appointment.Status.RESERVED
         )
         .prefetch_related("price_history")
         .order_by("start_at")
@@ -110,17 +111,21 @@ def doctor_detail(request, pk):
 
     doctor = get_object_or_404(
         _approved_doctors().prefetch_related(
-            Prefetch("time_slots", queryset=available_slots, to_attr="available_slots")
+            Prefetch(
+                "time_slots",
+                queryset=available_slots,
+                to_attr="available_slots",
+            )
         ),
         pk=pk,
     )
 
-    # قیمت هر بازه از آخرین رکورد تاریخچه خوانده می‌شود.
-    # ordering مدل SlotPriceHistory روی effective_at نزولی است،
-    # پس اولین رکورد همان قیمت فعلی است.
+    # قیمت فعلی هر TimeSlot
     slots = []
+
     for slot in doctor.available_slots:
         latest_price = slot.price_history.all().first()
+
         slots.append(
             {
                 "slot": slot,
@@ -128,19 +133,27 @@ def doctor_detail(request, pk):
             }
         )
 
-    specialties = [ds.specialty for ds in doctor.doctor_specialties.all()]
+    specialties = [
+        ds.specialty
+        for ds in doctor.doctor_specialties.all()
+    ]
 
-    # نظرات این پزشک، جدیدترین اول؛ select_related روی patient_user
-    # برای نمایش نام بیمار بدون کوئری اضافه به ازای هر نظر.
-    reviews = doctor.reviews.select_related("patient_user").order_by("-created_at")
+    # نظرات پزشک
+    reviews = (
+        doctor.reviews
+        .select_related("patient_user")
+        .order_by("-created_at")
+    )
+
     reviews_count = reviews.count()
 
     can_review = False
     existing_review = None
 
     if request.user.is_authenticated:
-        # فقط بیمارانی که واقعاً این پزشک را ویزیت کرده‌اند
-        # (Appointment با وضعیت COMPLETED) اجازه ثبت نظر دارند.
+
+        # فقط کسی که واقعاً ویزیت COMPLETED داشته
+        # می‌تواند نظر ثبت کند.
         can_review = Appointment.objects.filter(
             patient_user=request.user,
             visit_slot__doctor=doctor,
@@ -148,7 +161,8 @@ def doctor_detail(request, pk):
         ).exists()
 
         existing_review = Review.objects.filter(
-            doctor=doctor, patient_user=request.user
+            doctor=doctor,
+            patient_user=request.user,
         ).first()
 
     if existing_review:
@@ -180,19 +194,18 @@ def doctor_detail(request, pk):
 @login_required
 def submit_review(request, pk):
     """
-    ثبت یا به‌روزرسانی نظر یک بیمار برای یک پزشک.
-
-    پیش‌نیاز: کاربر باید حداقل یک Appointment با وضعیت COMPLETED برای
-    همین پزشک داشته باشد؛ یعنی واقعاً ویزیت انجام شده باشد. این شرط
-    مستقل از UniqueConstraint مدل بررسی می‌شود چون مربوط به «اجازه
-    ثبت نظر» است، نه «یکتایی نظر».
-
-    اگر کاربر قبلاً برای این پزشک نظر داده باشد، update_or_create آن
-    نظر قبلی را به‌روزرسانی می‌کند تا رکورد تکراری ساخته نشود (سازگار
-    با UniqueConstraint مدل Review).
+    ثبت یا به‌روزرسانی نظر بیمار برای پزشک.
     """
-    doctor = get_object_or_404(_approved_doctors(), pk=pk)
-    doctor_url = redirect("doctors:doctor_detail", pk=doctor.pk)
+
+    doctor = get_object_or_404(
+        _approved_doctors(),
+        pk=pk,
+    )
+
+    doctor_url = redirect(
+        "doctors:doctor_detail",
+        pk=doctor.pk,
+    )
 
     if request.method != "POST":
         return doctor_url
@@ -206,15 +219,18 @@ def submit_review(request, pk):
     if not has_completed_visit:
         messages.error(
             request,
-            "فقط بیمارانی که این پزشک را ویزیت کرده‌اند می‌توانند نظر ثبت کنند.",
+            "فقط بیمارانی که این پزشک را ویزیت کرده‌اند "
+            "می‌توانند نظر ثبت کنند.",
         )
         return doctor_url
 
     form = DoctorReviewForm(request.POST)
+
     if not form.is_valid():
         for field_errors in form.errors.values():
             for error in field_errors:
                 messages.error(request, error)
+
         return doctor_url
 
     Review.objects.update_or_create(
@@ -226,5 +242,9 @@ def submit_review(request, pk):
         },
     )
 
-    messages.success(request, "نظر شما با موفقیت ثبت شد.")
+    messages.success(
+        request,
+        "نظر شما با موفقیت ثبت شد.",
+    )
+
     return doctor_url
