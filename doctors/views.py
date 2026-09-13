@@ -1,4 +1,3 @@
-# Create your views here.
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -19,6 +18,7 @@ def _approved_doctors():
     """
     کوئری پایه پزشکان تاییدشده.
     """
+
     avg_rating_subquery = (
         Review.objects.filter(doctor=OuterRef("pk"))
         .values("doctor")
@@ -40,6 +40,7 @@ def doctor_list(request):
     """
     لیست پزشکان همراه با جستجو، فیلتر تخصص و صفحه‌بندی.
     """
+
     form = DoctorSearchForm(request.GET or None)
     doctors = _approved_doctors()
 
@@ -90,9 +91,9 @@ def doctor_detail(request, pk):
     یک TimeSlot زمانی قابل رزرو است اگر:
     - فعال باشد
     - زمان آن در آینده باشد
-    - Appointment با وضعیت RESERVED نداشته باشد
+    - Appointment با وضعیت RESERVED یا COMPLETED نداشته باشد
 
-    بنابراین اگر Appointment قبلی CANCELLED شده باشد،
+    اگر Appointment قبلی CANCELLED شده باشد،
     TimeSlot دوباره قابل رزرو خواهد بود.
     """
 
@@ -103,7 +104,10 @@ def doctor_detail(request, pk):
             start_at__gt=timezone.now(),
         )
         .exclude(
-            appointments__status=Appointment.Status.RESERVED
+            appointments__status__in=[
+                Appointment.Status.RESERVED,
+                Appointment.Status.COMPLETED,
+            ]
         )
         .prefetch_related("price_history")
         .order_by("start_at")
