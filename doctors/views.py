@@ -1,3 +1,4 @@
+# Create your views here.
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -18,7 +19,6 @@ def _approved_doctors():
     """
     کوئری پایه پزشکان تاییدشده.
     """
-
     avg_rating_subquery = (
         Review.objects.filter(doctor=OuterRef("pk"))
         .values("doctor")
@@ -40,7 +40,6 @@ def doctor_list(request):
     """
     لیست پزشکان همراه با جستجو، فیلتر تخصص و صفحه‌بندی.
     """
-
     form = DoctorSearchForm(request.GET or None)
     doctors = _approved_doctors()
 
@@ -93,7 +92,7 @@ def doctor_detail(request, pk):
     - زمان آن در آینده باشد
     - Appointment با وضعیت RESERVED یا COMPLETED نداشته باشد
 
-    اگر Appointment قبلی CANCELLED شده باشد،
+    بنابراین اگر Appointment قبلی CANCELLED شده باشد،
     TimeSlot دوباره قابل رزرو خواهد بود.
     """
 
@@ -156,28 +155,24 @@ def doctor_detail(request, pk):
 
     if request.user.is_authenticated:
 
-        # فقط کسی که واقعاً ویزیت COMPLETED داشته
-        # می‌تواند نظر ثبت کند.
+        # کاربر باید حداقل یک ویزیت COMPLETED داشته باشد.
         can_review = Appointment.objects.filter(
             patient_user=request.user,
             visit_slot__doctor=doctor,
             status=Appointment.Status.COMPLETED,
         ).exists()
 
+        # بررسی اینکه کاربر قبلاً برای این پزشک نظر ثبت کرده یا نه.
         existing_review = Review.objects.filter(
             doctor=doctor,
             patient_user=request.user,
         ).first()
 
-    if existing_review:
-        review_form = DoctorReviewForm(
-            initial={
-                "rating": existing_review.rating,
-                "comment": existing_review.comment,
-            }
-        )
-    else:
-        review_form = DoctorReviewForm()
+        # اگر قبلاً نظر ثبت شده باشد، دیگر اجازه ثبت نظر جدید ندارد.
+        if existing_review:
+            can_review = False
+
+    review_form = DoctorReviewForm()
 
     return render(
         request,
@@ -198,7 +193,13 @@ def doctor_detail(request, pk):
 @login_required
 def submit_review(request, pk):
     """
-    ثبت یا به‌روزرسانی نظر بیمار برای پزشک.
+    ثبت نظر بیمار برای پزشک.
+
+    شرایط ثبت نظر:
+    - کاربر باید حداقل یک ویزیت COMPLETED با پزشک داشته باشد.
+    - هر کاربر فقط یک بار می‌تواند برای هر پزشک نظر ثبت کند.
+    - اگر قبلاً نظر ثبت شده باشد، نظر جدید رد می‌شود.
+    - نظر قبلی قابل ویرایش یا جایگزینی نیست.
     """
 
     doctor = get_object_or_404(
@@ -214,6 +215,7 @@ def submit_review(request, pk):
     if request.method != "POST":
         return doctor_url
 
+    # بررسی اینکه کاربر واقعاً این پزشک را ویزیت کرده است.
     has_completed_visit = Appointment.objects.filter(
         patient_user=request.user,
         visit_slot__doctor=doctor,
@@ -228,6 +230,19 @@ def submit_review(request, pk):
         )
         return doctor_url
 
+    # جلوگیری از ثبت نظر تکراری
+    existing_review = Review.objects.filter(
+        doctor=doctor,
+        patient_user=request.user,
+    ).exists()
+
+    if existing_review:
+        messages.error(
+            request,
+            "شما قبلاً برای این پزشک نظر ثبت کرده‌اید و امکان ثبت نظر مجدد ندارید.",
+        )
+        return doctor_url
+
     form = DoctorReviewForm(request.POST)
 
     if not form.is_valid():
@@ -237,13 +252,12 @@ def submit_review(request, pk):
 
         return doctor_url
 
-    Review.objects.update_or_create(
+    # فقط ایجاد نظر جدید؛ هیچ update ای انجام نمی‌شود.
+    Review.objects.create(
         doctor=doctor,
         patient_user=request.user,
-        defaults={
-            "rating": form.cleaned_data["rating"],
-            "comment": form.cleaned_data["comment"],
-        },
+        rating=form.cleaned_data["rating"],
+        comment=form.cleaned_data["comment"],
     )
 
     messages.success(
