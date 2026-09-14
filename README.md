@@ -62,10 +62,11 @@ A Django-based doctor appointment system developed as a team project.
 git clone -b main https://github.com/Fatemeh-Mehnati/Quera_Project3-doctor-appointment-system.git
 cd Quera_Project3-doctor-appointment-system
 docker compose up --build
+```
 The application will be available at:
-
+```
 http://localhost:8000
-
+```
 Team
 Fatemeh Mehnati
 Sam Ahmadi
