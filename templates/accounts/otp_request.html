@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}ورود با کد یک‌بارمصرف | CareWell Clinic{% endblock %}
-{% block description %}ورود با کد یک‌بارمصرف به حساب کاربری{% endblock %}
+{% block title %}Sign In With a Login Code | CareWell Clinic{% endblock %}
+{% block description %}Sign in to your account with a one-time login code{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -86,6 +86,11 @@
     justify-content:center;
   }
 
+  .auth-submit:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+  }
+
   .auth-switch{
     text-align:center;
     margin-top:22px;
@@ -97,6 +102,22 @@
     color:var(--teal);
     font-weight:700;
   }
+
+  .form-nonfield-errors{
+    list-style:none;
+    padding:0;
+    margin:0 0 6px;
+  }
+
+  .form-nonfield-errors li{
+    background:#FDECEC;
+    color:#B3261E;
+    border:1px solid #F5C2C0;
+    border-radius:9px;
+    padding:10px 14px;
+    font-size:.85rem;
+    font-weight:600;
+  }
 </style>
 {% endblock %}
 
@@ -106,12 +127,20 @@
   <div class="auth-card">
 
     <div class="auth-head">
-      <h2>ورود با کد یک‌بارمصرف</h2>
-      <p>ایمیل خود را وارد کنید تا کد یک‌بارمصرف برای شما ارسال شود.</p>
+      <h2>Sign In With a Login Code</h2>
+      <p>Enter your email and we'll send you a one-time login code.</p>
     </div>
 
-    <form method="post" class="auth-form">
+    <form method="post" class="auth-form" id="otpRequestForm">
       {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <ul class="form-nonfield-errors">
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
 
       <div class="form-group">
         <label for="{{ form.email.id_for_label }}">Email</label>
@@ -126,17 +155,41 @@
         {% endif %}
       </div>
 
-      <button type="submit" class="btn btn-solid auth-submit">
-        دریافت کد
+      <button type="submit" class="btn btn-solid auth-submit" id="otpRequestSubmit">
+        Send Code
       </button>
     </form>
 
     <div class="auth-switch">
-      ورود با رمز عبور
-      <a href="{% url 'login' %}">ورود</a>
+      Prefer a password?
+      <a href="{% url 'login' %}">Sign In</a>
     </div>
 
   </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  (function () {
+    let secondsLeft = {{ resend_wait_seconds|default:0 }};
+    const submitBtn = document.getElementById("otpRequestSubmit");
+    const defaultLabel = "Send Code";
+
+    function tick() {
+      if (secondsLeft <= 0) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = defaultLabel;
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Resend in " + secondsLeft + "s";
+      secondsLeft -= 1;
+      setTimeout(tick, 1000);
+    }
+
+    tick();
+  })();
+</script>
 {% endblock %}
