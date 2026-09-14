@@ -23,6 +23,37 @@ User = get_user_model()
 TRANSACTIONS_PER_PAGE = 20
 
 
+def _otp_resend_wait_seconds(request):
+    """
+    ثانیه‌های باقی‌مانده تا مجاز بودن درخواست دوباره‌ی OTP.
+
+    اگر OTPای در session نباشد یا کول‌داون تمام شده باشد صفر برمی‌گردد.
+    """
+    otp_created_at = request.session.get("otp_created_at")
+    if not otp_created_at:
+        return 0
+
+    elapsed = timezone.now().timestamp() - otp_created_at
+    remaining = settings.OTP_RESEND_COOLDOWN_SECONDS - elapsed
+    return max(0, int(remaining))
+
+
+def _generate_and_send_otp(request, email):
+    """کد جدید می‌سازد، در session ذخیره و از طریق ایمیل ارسال می‌کند."""
+    otp = str(random.randint(100000, 999999))
+
+    request.session["otp_email"] = email
+    request.session["otp_code"] = otp
+    request.session["otp_created_at"] = timezone.now().timestamp()
+
+    send_mail(
+        subject="Your login code",
+        message=f"Your login code: {otp}",
+        from_email=None,
+        recipient_list=[email],
+    )
+
+
 def signup_view(request):
 
     if request.user.is_authenticated:
@@ -70,29 +101,21 @@ def otp_request_view(request):
             if user is None:
                 form.add_error(
                     "email",
-                    "کاربری با این ایمیل وجود ندارد."
+                    "No account was found with this email."
                 )
             else:
-                # ساخت کد ۶ رقمی
-                otp = str(random.randint(100000, 999999))
+                wait_seconds = _otp_resend_wait_seconds(request)
 
-                # ذخیره اطلاعات OTP در session
-                request.session["otp_email"] = email
-                request.session["otp_code"] = otp
-                request.session["otp_created_at"] = (
-                    timezone.now().timestamp()
-                )
+                if wait_seconds > 0:
+                    form.add_error(
+                        None,
+                        f"Please wait {wait_seconds} seconds before requesting a new code."
+                    )
+                else:
+                    _generate_and_send_otp(request, email)
 
-                # ارسال ایمیل
-                send_mail(
-                    subject="کد ورود",
-                    message=f"کد ورود شما: {otp}",
-                    from_email=None,
-                    recipient_list=[email],
-                )
-
-                # رفتن به صفحه تأیید OTP
-                return redirect("accounts:otp_verify")
+                    # رفتن به صفحه تأیید OTP
+                    return redirect("accounts:otp_verify")
 
     else:
         form = OTPRequestForm()
@@ -100,7 +123,7 @@ def otp_request_view(request):
     return render(
         request,
         "accounts/otp_request.html",
-        {"form": form},
+        {"form": form, "resend_wait_seconds": _otp_resend_wait_seconds(request)},
     )
 
 
@@ -129,7 +152,7 @@ def otp_verify_view(request):
 
                 form.add_error(
                     None,
-                    "کد ورود معتبر نیست یا منقضی شده است."
+                    "This code is invalid or has expired."
                 )
 
             # بررسی ایمیل
@@ -137,7 +160,7 @@ def otp_verify_view(request):
 
                 form.add_error(
                     "email",
-                    "ایمیل با ایمیل درخواست کد مطابقت ندارد."
+                    "This email doesn't match the one the code was sent to."
                 )
 
             # بررسی زمان انقضا
@@ -148,7 +171,7 @@ def otp_verify_view(request):
 
                 form.add_error(
                     None,
-                    "کد ورود منقضی شده است."
+                    "This code has expired."
                 )
 
             # بررسی کد
@@ -156,7 +179,7 @@ def otp_verify_view(request):
 
                 form.add_error(
                     "code",
-                    "کد ورود اشتباه است."
+                    "Incorrect code."
                 )
 
             else:
@@ -167,7 +190,7 @@ def otp_verify_view(request):
 
                     form.add_error(
                         None,
-                        "اطلاعات ورود معتبر نیست."
+                        "Your login details are invalid."
                     )
 
                 else:
@@ -191,7 +214,11 @@ def otp_verify_view(request):
     return render(
         request,
         "accounts/otp_verify.html",
-        {"form": form},
+        {
+            "form": form,
+            "resend_wait_seconds": _otp_resend_wait_seconds(request),
+            "otp_email": request.session.get("otp_email", ""),
+        },
     )
 
 
@@ -233,34 +260,26 @@ def login_view(request):
 
                     form.add_error(
                         "email",
-                        "کاربری با این ایمیل وجود ندارد."
+                        "No account was found with this email."
                     )
 
                 else:
-                    # ساخت OTP
-                    otp = str(random.randint(100000, 999999))
+                    wait_seconds = _otp_resend_wait_seconds(request)
 
-                    # ذخیره OTP در session
-                    request.session["otp_email"] = email
-                    request.session["otp_code"] = otp
-                    request.session["otp_created_at"] = (
-                        timezone.now().timestamp()
-                    )
+                    if wait_seconds > 0:
+                        form.add_error(
+                            None,
+                            f"Please wait {wait_seconds} seconds before requesting a new code."
+                        )
+                    else:
+                        # نگه داشتن next برای بعد از login
+                        if next_url:
+                            request.session["otp_next"] = next_url
 
-                    # نگه داشتن next برای بعد از login
-                    if next_url:
-                        request.session["otp_next"] = next_url
+                        _generate_and_send_otp(request, email)
 
-                    # ارسال OTP
-                    send_mail(
-                        subject="کد ورود",
-                        message=f"کد ورود شما: {otp}",
-                        from_email=None,
-                        recipient_list=[email],
-                    )
-
-                    # رفتن به صفحه تأیید OTP
-                    return redirect("accounts:otp_verify")
+                        # رفتن به صفحه تأیید OTP
+                        return redirect("accounts:otp_verify")
 
         # ---------------------------------
         # LOGIN WITH PASSWORD

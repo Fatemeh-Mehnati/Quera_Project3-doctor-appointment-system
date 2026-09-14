@@ -182,3 +182,9 @@ OTP_EXPIRY_SECONDS = config(
     default=120,
     cast=int
 )
+
+OTP_RESEND_COOLDOWN_SECONDS = config(
+    'OTP_RESEND_COOLDOWN_SECONDS',
+    default=60,
+    cast=int
+)
