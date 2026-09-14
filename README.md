@@ -67,9 +67,14 @@ The application will be available at:
 ```
 http://localhost:8000
 ```
-Team
+Team:
+
 Fatemeh Mehnati
+
 Sam Ahmadi
+
 Ali Soltani
+
 Erfan Naghdi
+
 Mahyar Malek
