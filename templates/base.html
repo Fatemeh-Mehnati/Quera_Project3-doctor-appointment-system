@@ -87,9 +87,11 @@
 
   .nav-actions{display:flex;align-items:center;gap:12px;flex:none;}
 
-  /* ---------- Language Selector & Auth Buttons ---------- */
-  .lang-selector select {
-    appearance: none;
+  /* ---------- Static language badge & Auth Buttons ---------- */
+  .lang-badge{
+    display:flex;
+    align-items:center;
+    gap:6px;
     background-color: var(--bg-alt);
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -97,12 +99,7 @@
     font-size: 0.88rem;
     font-weight: 600;
     color: var(--ink);
-    cursor: pointer;
-    outline: none;
-    transition: border-color 0.2s ease;
-  }
-  .lang-selector select:hover {
-    border-color: var(--teal);
+    white-space:nowrap;
   }
 
   .auth-buttons {
@@ -354,17 +351,8 @@
     </nav>
 
     <div class="nav-actions">
-      <!-- انتخاب‌گر زبان -->
-      <div class="lang-selector">
-        <form action="{% url 'set_language' %}" method="post">
-          {% csrf_token %}
-          <input name="next" type="hidden" value="{{ request.get_full_path }}">
-          <select name="language" onchange="this.form.submit()">
-            <option value="fa" {% if LANGUAGE_CODE == 'fa' %}selected{% endif %}>🇮🇷 فارسی</option>
-            <option value="en" {% if LANGUAGE_CODE == 'en' %}selected{% endif %}>🇬🇧 English</option>
-          </select>
-        </form>
-      </div>
+      <!-- نشان ثابت زبان (فقط نمایشی، دیگر قابل تغییر نیست) -->
+      <div class="lang-badge">🇬🇧 English</div>
 
       <!-- دکمه‌های ورود و ثبت‌نام -->
       <div class="auth-buttons">

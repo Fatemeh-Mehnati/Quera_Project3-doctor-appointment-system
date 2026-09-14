@@ -25,9 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-#z69=&b8uggx9)ebfxql%h=+5j&+j5y6bhnwdle+gco1g!_5vi'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ["localhost" , "127.0.0.1"]
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -78,7 +78,6 @@ LOGIN_REDIRECT_URL = "accounts:dashboard"
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',

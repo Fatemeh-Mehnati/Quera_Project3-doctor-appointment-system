@@ -23,7 +23,6 @@ from accounts import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("i18n/", include("django.conf.urls.i18n")),
     path('', TemplateView.as_view(template_name='base.html'), name='home'),
     path('doctors/', include('doctors.urls')),
     path('appointments/', include('appointments.urls')),
