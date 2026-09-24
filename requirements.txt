@@ -8,6 +8,7 @@ Django==6.1
 django-allauth==65.19.3
 dj-database-url==2.3.0
 whitenoise==6.8.2
+gunicorn==23.0.0
 idna==3.19
 psycopg==3.2.13
 psycopg-binary==3.2.13
